@@ -72,7 +72,7 @@ priority:
   sun:
     - ["ME", "OHP", "内視", "機", "災", "業", "労", "研修", "材料"]
     - ["OP", "アーム", ""]     # 連休のときだけ使う（下記参照）
-  # 日曜は、翌日(月)がこれらの勤務（手術室）だけの人は待機不可。"" は空白。
+  # 日曜は、翌日(月)がこれらの勤務（手術室）だけの人は「最後の手段(△)」扱い。"" は空白。
   # 連休（翌日が祝日、または対象者全員が不在）のときはこの制限を外す。
   sun_blocked_next_duties: ["OP", "アーム", ""]
   fri_mode: next_day_working   # 金曜は翌日(土)に勤務がある人を優先
@@ -88,6 +88,7 @@ weights:
   short_gap: 400             # 間隔が min_gap_days 未満（中1日など）
   week_overload: 800         # 同じ週に max_per_week を超えて入る
   sunday_prev_absent: 1300   # 日曜に「前日(土)不在」の候補(△)を充てる
+  sunday_next_operating_room: 2500  # 日曜に「翌日(月)が手術室勤務」の候補(△)を充てる
   sunday_tier_multiplier: 20 # 日曜の優先順位を平日より重く扱う倍率（第2優先=60x20=1200）
   ineligible: 1000000       # 待機不可の日に充てた場合（ハード制約）
   group_run: 1000000        # consecutive_group の連続超過（ハード制約）

@@ -62,8 +62,8 @@ def test_sunday_kou_is_available_unless_red():
     assert not engine.eligible("担当D", d(2))
 
 
-def test_sunday_blocked_when_monday_is_operating_room():
-    """翌日(月)が手術室勤務（空白・OP・アーム）だけの人は日曜の待機不可。"""
+def test_sunday_operating_room_monday_is_only_conditional():
+    """翌日(月)が手術室勤務（空白・OP・アーム）だけの人は、他に組めない場合の候補(△)。"""
     engine = build_engine(
         {
             ("担当C", d(2)): [Cell(text="公")],
@@ -74,10 +74,15 @@ def test_sunday_blocked_when_monday_is_operating_room():
             ("担当E", d(3)): [Cell(text="内視")],
         }
     )
-    assert not engine.eligible("担当C", d(2))
-    assert "手術室" in engine.eligibility("担当C", d(2)).reason
-    assert not engine.eligible("担当D", d(2))
-    assert engine.eligible("担当E", d(2))
+    assert engine.availability_mark("担当C", d(2)) == "△"
+    assert "手術室" in engine.eligibility("担当C", d(2)).note
+    assert engine.availability_mark("担当D", d(2)) == "△"
+    assert engine.availability_mark("担当E", d(2)) == "○"
+    # 手術室(△)は前日(土)不在(△)より重い＝より後回し
+    assert (
+        engine.eligibility("担当C", d(2)).penalty
+        > float(CFG.weights["sunday_prev_absent"])
+    )
 
 
 def test_long_weekend_lifts_the_monday_condition():
