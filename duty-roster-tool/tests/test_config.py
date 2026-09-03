@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from duty_roster.config import ConfigError, load_config, normalize_code, normalize_name
@@ -53,7 +55,9 @@ def test_output_path_default(tmp_path):
         "members: [A, B]\nquota_by_month_length:\n  28: {A: 14, B: 14}\n", encoding="utf-8"
     )
     cfg = load_config(path)
-    assert cfg.output_path(2026, 9).name == "待機表_202609.xlsx"
+    default = cfg.output_path(2026, 9)
+    assert default.name == "待機表_202609.xlsx"
+    assert default.parent == (Path.home() / "Downloads" / "待機表").resolve()
 
 
 def test_quota_must_sum_to_month_length(tmp_path):

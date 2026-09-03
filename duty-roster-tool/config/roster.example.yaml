@@ -126,7 +126,8 @@ excel:
 
 # 出力先。-o を付けずに実行したときの保存場所とファイル名。
 output:
-  directory: out                              # 保存先フォルダ（~ や環境変数も使える）
+  # 既定はダウンロードフォルダの中の「待機表」フォルダ（無ければ自動で作る）
+  directory: "~/Downloads/待機表"
   filename: "待機表_{year}{month:02d}.xlsx"   # {year} {month} が使える
   # Windows の共有フォルダに直接出す例:
   #   directory: "//サーバ名/共有/臨床工学科/待機表"

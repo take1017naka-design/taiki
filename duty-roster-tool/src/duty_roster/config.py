@@ -150,9 +150,10 @@ DEFAULTS: dict[str, Any] = {
     },
     "output": {
         # 保存先フォルダ。~ や環境変数も使える。
-        #   Windows の例: "C:/Users/xxx/Desktop/待機表"  や  "//server/share/臨床工学科"
-        #   Mac の例:     "~/Desktop/待機表"
-        "directory": "out",
+        # 既定はダウンロードフォルダの中の「待機表」フォルダ（無ければ作る）。
+        #   共有フォルダの例: "//server/share/臨床工学科/待機表"
+        #   デスクトップの例: "~/Desktop/待機表"
+        "directory": "~/Downloads/待機表",
         # ファイル名。{year} と {month} が使える。
         "filename": "待機表_{year}{month:02d}.xlsx",
         "weekday_font_color": "FF000000",

@@ -34,7 +34,7 @@ python -m duty_roster check -s data/202608.xlsx -c config/roster.yaml
 
 # 3) 待機表を作る
 python -m duty_roster generate -s data/202608.xlsx -c config/roster.yaml
-#    → out/待機表_202608.xlsx
+#    → ダウンロード/待機表/待機表_202608.xlsx
 ```
 
 対象年月は勤務表の表題（例:「２０２６年　８月勤務割当表」）から自動で推定します。
@@ -141,11 +141,13 @@ python -m duty_roster generate -s data/202608.xlsx -c config/roster.yaml
 
 ## 出力
 
-既定は `out/待機表_YYYYMM.xlsx`。保存先は設定で変えられます。
+既定の保存先は **ダウンロードフォルダの中の「待機表」フォルダ**です
+（`~/Downloads/待機表`。無ければ自動で作ります）。設定で変えられます。
 
 ```yaml
 output:
-  directory: "//サーバ名/共有/臨床工学科/待機表"   # 共有フォルダに直接出す
+  directory: "~/Downloads/待機表"                # 既定
+  # directory: "//サーバ名/共有/臨床工学科/待機表" # 共有フォルダに直接出す
   # directory: "~/Desktop/待機表"                # デスクトップに出す
   filename: "待機表_{year}{month:02d}.xlsx"
 ```
