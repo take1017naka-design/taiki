@@ -22,6 +22,7 @@ def setup_print(
     area: str | None = None,
     fit_height: int | None = 1,
     repeat_rows: str | None = None,
+    center_vertically: bool | None = None,
 ) -> None:
     """そのまま印刷できるようにページ設定を入れる（既定 A4 横・幅を1ページに収める）。"""
     out = cfg.output
@@ -36,7 +37,13 @@ def setup_print(
     ws.page_margins = PageMargins(
         left=margin, right=margin, top=margin, bottom=margin, header=0.2, footer=0.2
     )
-    ws.print_options.horizontalCentered = True
+    # 用紙の中央に配置する。複数ページになるシートは横方向だけ中央にする。
+    ws.print_options.horizontalCentered = bool(out.get("center_horizontally", True))
+    if center_vertically is None:
+        center_vertically = fit_height == 1
+    ws.print_options.verticalCentered = bool(
+        center_vertically and out.get("center_vertically", True)
+    )
     if area:
         ws.print_area = area
     if repeat_rows:

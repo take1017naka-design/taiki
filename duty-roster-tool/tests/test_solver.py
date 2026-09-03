@@ -157,6 +157,12 @@ def test_sheets_are_ready_to_print(august, tmp_path):
     area = wb["待機表"].print_area
     assert area.startswith("'待機表'!$A$1:$J$")   # 日数欄(J列)まで印刷範囲に入る
 
+    # 待機表は用紙の上下左右中央。複数ページになるシートは左右のみ中央。
+    roster = wb["待機表"].print_options
+    assert roster.horizontalCentered and roster.verticalCentered
+    listing = wb["一覧"].print_options
+    assert listing.horizontalCentered and not listing.verticalCentered
+
 
 def test_short_month_also_solves(february):
     engine, solution = february

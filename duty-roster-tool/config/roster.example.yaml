@@ -136,6 +136,8 @@ output:
   paper_size: 9          # 9 = A4
   paper_landscape: true  # 横向き
   page_margin_inch: 0.4
+  center_horizontally: true   # 用紙の左右中央に配置
+  center_vertically: true     # 用紙の上下中央に配置（1ページに収まるシートのみ）
   # 担当ごとの待機日数を出す位置（カレンダーの右横）
   counts_column: 9
   counts_row: 3

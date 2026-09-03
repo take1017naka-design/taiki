@@ -161,6 +161,8 @@ output:
   paper_size: 9               # 9 = A4
   paper_landscape: true       # 横向き
   page_margin_inch: 0.4
+  center_horizontally: true   # 用紙の左右中央
+  center_vertically: true     # 用紙の上下中央（1ページに収まるシートのみ）
   counts_column: 9            # 担当ごとの日数を出す列
   counts_row: 3
   holiday_fill: "FFFDE9E9"    # 日曜・祝日
@@ -175,8 +177,9 @@ duty-roster generate -s 202609.xlsx -o "D:/共有/待機表"          # フォ�
 duty-roster generate -s 202609.xlsx -o "D:/共有/9月の待機表.xlsx" # ファイル名指定
 ```
 
-**全シートに印刷設定（A4横・幅を1ページに収める・余白0.4インチ）が入っている**ので、
-開いてそのまま印刷できます。待機表は印刷範囲も設定済みで1ページに収まります。
+**全シートに印刷設定（A4横・幅を1ページに収める・余白0.4インチ・用紙の中央に配置）が
+入っている**ので、開いてそのまま印刷できます。待機表は印刷範囲も設定済みで1ページに収まり、
+上下左右とも用紙の中央に出ます（複数ページになるシートは左右のみ中央）。
 
 出力ファイルには5シート入っています:
 

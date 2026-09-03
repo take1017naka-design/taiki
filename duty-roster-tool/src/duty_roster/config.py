@@ -168,6 +168,9 @@ DEFAULTS: dict[str, Any] = {
         "paper_size": 9,          # 9 = A4
         "paper_landscape": True,
         "page_margin_inch": 0.4,
+        # 用紙の中央に配置する（縦方向は1ページに収まるシートのみ）
+        "center_horizontally": True,
+        "center_vertically": True,
         # 担当ごとの待機日数を出す位置（カレンダーの右横）
         "counts_column": 9,
         "counts_row": 3,
