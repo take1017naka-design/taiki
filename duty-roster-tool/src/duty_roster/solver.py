@@ -54,13 +54,16 @@ class Solver:
         self.tier_cost: dict[tuple[str, dt.date], float] = {}
         for day in self.days:
             for name in self.members:
-                self.ok[(name, day)] = engine.eligible(name, day)
+                elig = engine.eligibility(name, day)
+                self.ok[(name, day)] = elig.ok
                 tier = engine.tier(name, day)
-                self.tier_cost[(name, day)] = (
+                base = (
                     self.tier_weights[tier]
                     if tier is not None and tier < len(self.tier_weights)
                     else self.w_fallback
                 )
+                # 条件付きで可の候補は追加コストを載せ、最後の手段にする
+                self.tier_cost[(name, day)] = base + elig.penalty
         self.red_days = {d for d in self.days if engine.is_red_day(d) or d.weekday() == SAT}
 
     # -- 評価 --------------------------------------------------------------
@@ -249,8 +252,17 @@ class Solver:
             cost=best_cost,
             counts=counts,
             violations=self.collect_violations(best),
-            notes=notes,
+            notes=notes + self.collect_conditional_notes(best),
         )
+
+    def collect_conditional_notes(self, assignment: dict[dt.date, str]) -> list[str]:
+        """条件付きで可の候補を使った日を書き出す。"""
+        out = []
+        for day in self.days:
+            elig = self.engine.eligibility(assignment[day], day)
+            if elig.conditional:
+                out.append(f"{day:%m/%d} {assignment[day]}: {elig.note}")
+        return out
 
     # -- 検証 --------------------------------------------------------------
     def collect_violations(self, assignment: dict[dt.date, str]) -> list[str]:

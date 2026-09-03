@@ -75,7 +75,8 @@ priority:
 weights:
   tier: [0, 60, 150, 240, 900]   # 第1〜第5優先のコスト
   fallback_tier: 4000       # どの優先順位にも当てはまらない人を充てた場合
-  consecutive: 120          # 連日待機（努力目標）
+  consecutive: 600          # 連日待機（優先順位2〜3段ぶんより重く扱う）
+  sunday_prev_absent: 300   # 日曜に「前日(土)不在」の人を充てる（連日より優先）
   ineligible: 1000000       # 待機不可の日に充てた場合（ハード制約）
   group_run: 1000000        # consecutive_group の連続超過（ハード制約）
   holiday_fairness: 15      # 土日祝の回数の偏り

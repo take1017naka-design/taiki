@@ -135,10 +135,28 @@ def test_weekend_pool_only_on_saturday_and_sunday():
     assert engine.eligible("担当B", d(1))
 
 
-def test_sunday_excludes_previous_saturday_and_next_monday_absence():
-    engine = build_engine({("担当B", d(1)): [Cell(text="有")]})
-    assert not engine.eligible("担当B", d(2))
+def test_sunday_excludes_next_monday_absence():
     engine = build_engine({("担当B", d(3)): [Cell(text="夏")]})
+    assert not engine.eligible("担当B", d(2))
+    assert engine.eligibility("担当B", d(2)).reason == "翌日(月)が不在"
+
+
+def test_sunday_previous_saturday_absence_is_only_conditional():
+    """前日(土)不在は、他に組めないときだけ使う候補（当日が赤字でなければ可）。"""
+    engine = build_engine({("担当B", d(1)): [Cell(text="有")]})
+    elig = engine.eligibility("担当B", d(2))
+    assert elig.ok
+    assert elig.conditional
+    assert engine.availability_mark("担当B", d(2)) == "△"
+
+
+def test_sunday_red_stays_impossible_even_with_saturday_absence():
+    engine = build_engine(
+        {
+            ("担当B", d(1)): [Cell(text="有")],
+            ("担当B", d(2)): [Cell(text="公", red=True)],
+        }
+    )
     assert not engine.eligible("担当B", d(2))
 
 

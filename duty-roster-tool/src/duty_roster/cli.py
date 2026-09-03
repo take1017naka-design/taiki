@@ -139,13 +139,11 @@ def cmd_check(args) -> int:
         )
 
     header = "      " + "".join(f"{d.day:>3}" for d in engine.days)
-    print("\n待機可否 (○=可 ×=不可)")
+    print("\n待機可否 (○=可 △=条件付きで可 ×=不可)")
     print(header)
     print("      " + "".join(f"{WEEKDAY_JP[d.weekday()]:>3}" for d in engine.days))
     for name in engine.members:
-        row = "".join(
-            f"{'○' if engine.eligible(name, d) else '×':>3}" for d in engine.days
-        )
+        row = "".join(f"{engine.availability_mark(name, d):>3}" for d in engine.days)
         print(f"{name:<6}{row}")
 
     print("\n不可の理由")
@@ -156,6 +154,17 @@ def cmd_check(args) -> int:
             if not engine.eligible(name, d)
         ]
         print(f"  {name}: {', '.join(reasons) if reasons else '（なし）'}")
+
+    conditional = [
+        f"{d.day}日 {name}: {engine.eligibility(name, d).note}"
+        for name in engine.members
+        for d in engine.days
+        if engine.eligibility(name, d).conditional
+    ]
+    if conditional:
+        print("\n条件付きで可")
+        for line in conditional:
+            print(f"  {line}")
     return 0
 
 

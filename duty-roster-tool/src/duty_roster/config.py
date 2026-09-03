@@ -81,7 +81,9 @@ DEFAULTS: dict[str, Any] = {
         # どの優先順位にも当てはまらない人を充てた場合のコスト
         "fallback_tier": 4000,
         # 連日待機1回あたりのコスト（3.④以外は努力目標）
-        "consecutive": 120,
+        "consecutive": 600,
+        # 日曜に「前日(土)が不在」の人を充てる場合のコスト（最後の手段）
+        "sunday_prev_absent": 300,
         # ハード制約違反（本来ありえない）に付ける巨大コスト
         "ineligible": 1_000_000,
         "group_run": 1_000_000,

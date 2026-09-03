@@ -172,7 +172,7 @@ def _sheet_summary(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Solu
 def _sheet_availability(wb: Workbook, engine: RuleEngine) -> None:
     """読み取り結果の目視確認用。○=待機可 / 記号=不可理由。"""
     ws = wb.create_sheet("可否一覧")
-    ws.cell(row=1, column=1, value="待機可否（○=可、×=不可・右に理由）").font = Font(bold=True)
+    ws.cell(row=1, column=1, value="待機可否（○=可、△=条件付きで可、×=不可・下に理由）").font = Font(bold=True)
     ws.cell(row=2, column=1, value="氏名").font = Font(bold=True)
     for i, day in enumerate(engine.days, start=2):
         c = ws.cell(row=2, column=i, value=day.day)
@@ -185,26 +185,29 @@ def _sheet_availability(wb: Workbook, engine: RuleEngine) -> None:
         ws.cell(row=r, column=1, value=name).font = Font(bold=True)
         for i, day in enumerate(engine.days, start=2):
             elig = engine.eligibility(name, day)
-            cell = ws.cell(row=r, column=i, value="○" if elig.ok else "×")
+            cell = ws.cell(row=r, column=i, value=engine.availability_mark(name, day))
             cell.alignment = CENTER
             if not elig.ok:
                 cell.font = Font(color="FF999999")
-                cell.comment = None
+            elif elig.conditional:
+                cell.font = Font(color="FFC55A11", bold=True)
             if engine.is_yellow(name, day):
                 cell.fill = PatternFill("solid", fgColor="FFFFFF00")
     ws.freeze_panes = "B3"
 
     start = len(engine.members) + 5
-    ws.cell(row=start, column=1, value="不可の理由").font = Font(bold=True)
+    ws.cell(row=start, column=1, value="不可・条件付きの理由").font = Font(bold=True)
     r = start + 1
     for name in engine.members:
         for day in engine.days:
             elig = engine.eligibility(name, day)
-            if not elig.ok:
-                ws.cell(row=r, column=1, value=f"{day:%m/%d}")
-                ws.cell(row=r, column=2, value=name)
-                ws.cell(row=r, column=3, value=elig.reason)
-                r += 1
+            if elig.ok and not elig.conditional:
+                continue
+            ws.cell(row=r, column=1, value=f"{day:%m/%d}")
+            ws.cell(row=r, column=2, value=name)
+            ws.cell(row=r, column=3, value="△" if elig.conditional else "×")
+            ws.cell(row=r, column=4, value=elig.note if elig.conditional else elig.reason)
+            r += 1
 
 
 def _sheet_notes(wb: Workbook, solution: Solution, warnings: list[str]) -> None:

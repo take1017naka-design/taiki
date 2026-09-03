@@ -19,10 +19,20 @@ WEEKDAY_JP = ["月", "火", "水", "木", "金", "土", "日"]
 
 @dataclass(frozen=True)
 class Eligibility:
-    """ある人のある日の待機可否。"""
+    """ある人のある日の待機可否。
+
+    penalty > 0 は「条件付きで可」。他に組めないときだけ使う候補で、
+    探索では追加コストとして扱われるため、通常は選ばれない。
+    """
 
     ok: bool
     reason: str = ""
+    penalty: float = 0.0
+    note: str = ""
+
+    @property
+    def conditional(self) -> bool:
+        return self.ok and self.penalty > 0
 
 
 class RuleEngine:
@@ -152,6 +162,12 @@ class RuleEngine:
     def eligible(self, name: str, day: dt.date) -> bool:
         return self.eligibility(name, day).ok
 
+    def availability_mark(self, name: str, day: dt.date) -> str:
+        elig = self.eligibility(name, day)
+        if not elig.ok:
+            return "×"
+        return "△" if elig.conditional else "○"
+
     def _eligibility(self, name: str, day: dt.date) -> Eligibility:
         wd = day.weekday()
 
@@ -177,14 +193,21 @@ class RuleEngine:
         if anchor and name in self.cfg.backup_dependents and self.is_absent(anchor, day):
             return Eligibility(False, f"{anchor}が不在（バックアップ不可）")
 
-        # 4. 日曜の除外条件：前日(土)不在・翌日(月)不在
+        # 4. 日曜の除外条件
         if wd == SUN:
             prev_day = day - dt.timedelta(days=1)
             next_day = day + dt.timedelta(days=1)
-            if self.is_absent(name, prev_day):
-                return Eligibility(False, "前日(土)が不在")
+            # 翌日(月)が不在の人は対象外（日曜は翌日出勤者が担当する）
             if self.is_absent(name, next_day):
                 return Eligibility(False, "翌日(月)が不在")
+            # 前日(土)が不在の人は、他に組めない場合に限って候補にする。
+            # 当日(日)が赤字・黄色でないことは、ここまでの判定で確認済み。
+            if self.is_absent(name, prev_day):
+                return Eligibility(
+                    True,
+                    penalty=float(self.cfg.weights.get("sunday_prev_absent", 2000)),
+                    note="前日(土)が不在（他に組めない場合の候補）",
+                )
 
         return Eligibility(True)
 
