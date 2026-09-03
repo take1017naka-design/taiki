@@ -63,6 +63,9 @@ python -m duty_roster generate -s data/202608.xlsx -c config/roster.yaml
 
 ## 実装しているルール
 
+> ルールの全体像は **[docs/作成ルール.md](docs/作成ルール.md)** に一枚でまとまっています。
+> 以下はその要約です。
+
 ### 待機不可の判定（全曜日共通）
 
 | 条件 | 扱い |
