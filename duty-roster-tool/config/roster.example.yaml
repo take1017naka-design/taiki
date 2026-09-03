@@ -124,6 +124,15 @@ excel:
   plan_label: "予"
   actual_label: "実"
 
+# 出力先。-o を付けずに実行したときの保存場所とファイル名。
+output:
+  directory: out                              # 保存先フォルダ（~ や環境変数も使える）
+  filename: "待機表_{year}{month:02d}.xlsx"   # {year} {month} が使える
+  # Windows の共有フォルダに直接出す例:
+  #   directory: "//サーバ名/共有/臨床工学科/待機表"
+  # デスクトップに出す例:
+  #   directory: "~/Desktop/待機表"
+
 # 探索の設定
 search:
   seed: 20260101

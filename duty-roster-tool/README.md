@@ -141,7 +141,23 @@ python -m duty_roster generate -s data/202608.xlsx -c config/roster.yaml
 
 ## 出力
 
-`out/待機表_YYYYMM.xlsx` に5シート:
+既定は `out/待機表_YYYYMM.xlsx`。保存先は設定で変えられます。
+
+```yaml
+output:
+  directory: "//サーバ名/共有/臨床工学科/待機表"   # 共有フォルダに直接出す
+  # directory: "~/Desktop/待機表"                # デスクトップに出す
+  filename: "待機表_{year}{month:02d}.xlsx"
+```
+
+`-o` を付けるとその回だけ上書きできます。ファイル名でもフォルダでも構いません。
+
+```bash
+duty-roster generate -s 202609.xlsx -o "D:/共有/待機表"          # フォルダ指定
+duty-roster generate -s 202609.xlsx -o "D:/共有/9月の待機表.xlsx" # ファイル名指定
+```
+
+出力ファイルには5シート入っています:
 
 | シート | 内容 |
 |---|---|
@@ -167,6 +183,7 @@ python -m duty_roster generate -s data/202608.xlsx -c config/roster.yaml
 | `plan_codes` | 不在記号の定義と赤字の適用範囲 |
 | `priority` | 曜日別の優先順位 |
 | `colors` | 濃い黄色・赤字の判定しきい値 |
+| `output.directory` / `output.filename` | 待機表の保存先とファイル名 |
 | `holidays_auto` / `holidays` | 祝日の自動計算と、追加したい休日 |
 | `manual_unavailable` | 勤務表から読み取れない待機不可日を手で足す |
 | `roles.max_per_week` / `min_gap_days` | 待機日の散らし方 |

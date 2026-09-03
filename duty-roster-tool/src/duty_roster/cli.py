@@ -38,7 +38,11 @@ def build_parser() -> argparse.ArgumentParser:
     gen.add_argument("-s", "--schedule", required=True, help="勤務割当表 Excel")
     gen.add_argument("-c", "--config", default="config/roster.yaml", help="設定ファイル")
     gen.add_argument("-m", "--month", type=parse_month, help="対象年月（例 2026-08）。省略時は表題から推定")
-    gen.add_argument("-o", "--output", help="出力先 Excel（既定: out/待機表_YYYYMM.xlsx）")
+    gen.add_argument(
+        "-o",
+        "--output",
+        help="出力先。ファイル名でもフォルダでも可。省略時は設定の output.directory を使う",
+    )
 
     chk = sub.add_parser("check", help="勤務表の読み取り結果（待機可否）を確認する")
     chk.add_argument("-s", "--schedule", required=True, help="勤務割当表 Excel")
@@ -68,6 +72,17 @@ def resolve_month(args, schedule_path: Path) -> tuple[int, int]:
     raise SystemExit("対象年月を判別できませんでした。--month 2026-08 の形式で指定してください。")
 
 
+def resolve_output(given: str | None, cfg, year: int, month: int) -> Path:
+    """出力先を決める。フォルダだけ渡された場合は既定のファイル名を付ける。"""
+    if not given:
+        return cfg.output_path(year, month)
+    path = Path(given).expanduser()
+    if path.is_dir() or given.endswith(("/", "\\")) or not path.suffix:
+        filename = cfg.output_path(year, month).name
+        return (path / filename).resolve()
+    return path.resolve()
+
+
 def cmd_generate(args) -> int:
     cfg = load_config(args.config)
     schedule_path = Path(args.schedule)
@@ -84,7 +99,7 @@ def cmd_generate(args) -> int:
             + "、".join(f"{d:%m/%d}({WEEKDAY_JP[d.weekday()]})" for d in engine.exception_days)
         )
 
-    output = Path(args.output) if args.output else Path("out") / f"待機表_{year}{month:02d}.xlsx"
+    output = resolve_output(args.output, cfg, year, month)
     write_roster(output, cfg, engine, solution, warnings=notes)
 
     print(f"\n{year}年{month}月 待機表")

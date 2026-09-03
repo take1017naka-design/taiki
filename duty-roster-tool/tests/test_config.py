@@ -34,6 +34,28 @@ def test_example_config_loads():
     assert cfg.code_aliases["一/公"] == "―/公"
 
 
+def test_output_path_uses_config(tmp_path):
+    path = tmp_path / "c.yaml"
+    path.write_text(
+        "members: [A, B]\n"
+        "quota_by_month_length:\n  28: {A: 14, B: 14}\n"
+        'output: {directory: "%s", filename: "roster-{year}-{month:02d}.xlsx"}\n'
+        % tmp_path.as_posix(),
+        encoding="utf-8",
+    )
+    cfg = load_config(path)
+    assert cfg.output_path(2026, 9) == (tmp_path / "roster-2026-09.xlsx").resolve()
+
+
+def test_output_path_default(tmp_path):
+    path = tmp_path / "c.yaml"
+    path.write_text(
+        "members: [A, B]\nquota_by_month_length:\n  28: {A: 14, B: 14}\n", encoding="utf-8"
+    )
+    cfg = load_config(path)
+    assert cfg.output_path(2026, 9).name == "待機表_202609.xlsx"
+
+
 def test_quota_must_sum_to_month_length(tmp_path):
     path = tmp_path / "bad.yaml"
     path.write_text(

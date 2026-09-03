@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import copy
 import datetime as dt
+import os
 import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -148,6 +149,12 @@ DEFAULTS: dict[str, Any] = {
         "sunday_candidates": 16,
     },
     "output": {
+        # 保存先フォルダ。~ や環境変数も使える。
+        #   Windows の例: "C:/Users/xxx/Desktop/待機表"  や  "//server/share/臨床工学科"
+        #   Mac の例:     "~/Desktop/待機表"
+        "directory": "out",
+        # ファイル名。{year} と {month} が使える。
+        "filename": "待機表_{year}{month:02d}.xlsx",
         "weekday_font_color": "FF000000",
         "saturday_font_color": "FF0070C0",
         "sunday_font_color": "FFFF0000",
@@ -316,6 +323,13 @@ class Config:
     @property
     def output(self) -> dict[str, Any]:
         return self.raw["output"]
+
+    def output_path(self, year: int, month: int) -> Path:
+        """設定から既定の出力先を組み立てる。"""
+        out = self.raw["output"]
+        directory = os.path.expandvars(str(out.get("directory") or "out"))
+        filename = str(out.get("filename") or "待機表_{year}{month:02d}.xlsx")
+        return (Path(directory).expanduser() / filename.format(year=year, month=month)).resolve()
 
 
 class ConfigError(Exception):
