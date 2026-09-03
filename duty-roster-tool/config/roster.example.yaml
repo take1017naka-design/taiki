@@ -129,6 +129,14 @@ output:
   # 既定はダウンロードフォルダの中の「待機表」フォルダ（無ければ自動で作る）
   directory: "~/Downloads/待機表"
   filename: "待機表_{year}{month:02d}.xlsx"   # {year} {month} が使える
+  # カレンダーの枡目の大きさ（日付行と氏名行を同じ高さにしてそろえる）
+  calendar_column_width: 13.0
+  calendar_date_row_height: 21.0
+  calendar_name_row_height: 21.0
+  # カレンダーのセルの塗り（日曜と祝日は同じ色、土曜は薄い青）
+  holiday_fill: "FFFDE9E9"    # 日曜・祝日
+  saturday_fill: "FFDEEBF7"   # 土曜
+  weekday_fill: null          # 平日は塗らない
   # Windows の共有フォルダに直接出す例:
   #   directory: "//サーバ名/共有/臨床工学科/待機表"
   # デスクトップに出す例:

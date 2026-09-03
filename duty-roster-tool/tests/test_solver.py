@@ -113,7 +113,22 @@ def test_writer_produces_all_sheets(august, tmp_path):
 
     wb = load_workbook(out)
     assert wb.sheetnames == ["待機表", "一覧", "集計", "可否一覧", "確認事項"]
-    assert wb["待機表"]["A1"].value == "2026年8月　カテ待機表"
+    ws = wb["待機表"]
+    assert ws["A1"].value == "2026年8月　カテ待機表"
+
+    # 日曜(8/2)は祝日(8/11)と同じ色、土曜(8/1)は薄い青、平日は塗らない
+    def fill_of(row, col):
+        cell = ws.cell(row=row, column=col)
+        return cell.fill.start_color.rgb if cell.fill.fill_type == "solid" else None
+
+    sunday, holiday, saturday, weekday = fill_of(6, 1), fill_of(8, 3), fill_of(4, 7), fill_of(6, 2)
+    assert sunday == holiday == "FFFDE9E9"
+    assert saturday == "FFDEEBF7"
+    assert weekday is None
+
+    # 枡目の大きさがそろっていること
+    assert ws.column_dimensions["A"].width == ws.column_dimensions["G"].width == 13.0
+    assert ws.row_dimensions[4].height == ws.row_dimensions[5].height == 21.0
 
 
 def test_short_month_also_solves(february):

@@ -26,6 +26,17 @@ def _day_font_color(engine: RuleEngine, day: dt.date, out: dict[str, str]) -> st
     return out["weekday_font_color"]
 
 
+def _day_fill(engine: RuleEngine, day: dt.date, out: dict[str, str]) -> PatternFill | None:
+    """日曜・祝日は同じ色、土曜は薄い青。"""
+    if engine.is_red_day(day):
+        color = out.get("holiday_fill")
+    elif day.weekday() == SAT:
+        color = out.get("saturday_fill")
+    else:
+        color = out.get("weekday_fill")
+    return PatternFill("solid", fgColor=color) if color else None
+
+
 def write_roster(
     path: str | Path,
     cfg: Config,
@@ -67,7 +78,7 @@ def _sheet_calendar(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Sol
         )
         cell.font = Font(bold=True, color=color)
         cell.fill = PatternFill("solid", fgColor="FFF2F2F2")
-        ws.column_dimensions[get_column_letter(i)].width = 13
+        ws.column_dimensions[get_column_letter(i)].width = float(out["calendar_column_width"])
 
     # 日曜始まりの列位置（Python の weekday は月=0 なので +1 して 7 で割る）
     def column_of(day: dt.date) -> int:
@@ -88,13 +99,16 @@ def _sheet_calendar(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Sol
         name_cell = ws.cell(row=row + 1, column=col, value=solution.assignment[day])
         name_cell.alignment = CENTER
         name_cell.border = Border(left=THIN, right=THIN, bottom=THIN)
-        if engine.is_holiday(day):
-            date_cell.fill = PatternFill("solid", fgColor="FFFDE9E9")
-            name_cell.fill = PatternFill("solid", fgColor="FFFDE9E9")
+        fill = _day_fill(engine, day, out)
+        if fill is not None:
+            date_cell.fill = fill
+            name_cell.fill = PatternFill("solid", fgColor=fill.start_color.rgb)
 
+    date_height = float(out["calendar_date_row_height"])
+    name_height = float(out["calendar_name_row_height"])
     for r in range(4, row + 2, 2):
-        ws.row_dimensions[r].height = 16
-        ws.row_dimensions[r + 1].height = 22
+        ws.row_dimensions[r].height = date_height
+        ws.row_dimensions[r + 1].height = name_height
 
     ws.cell(row=row + 3, column=1, value="※ 日付の色: 平日=黒 / 土曜=青 / 日曜・祝日=赤").font = Font(
         size=9, color="FF808080"

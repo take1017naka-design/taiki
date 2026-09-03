@@ -159,6 +159,14 @@ DEFAULTS: dict[str, Any] = {
         "weekday_font_color": "FF000000",
         "saturday_font_color": "FF0070C0",
         "sunday_font_color": "FFFF0000",
+        # カレンダーのセルの大きさ。日付行と氏名行を同じ高さにして枡目をそろえる。
+        "calendar_column_width": 13.0,
+        "calendar_date_row_height": 21.0,
+        "calendar_name_row_height": 21.0,
+        # カレンダーのセルの塗り。日曜・祝日は同じ色、土曜は薄い青。
+        "holiday_fill": "FFFDE9E9",
+        "saturday_fill": "FFDEEBF7",
+        "weekday_fill": None,
     },
 }
 
