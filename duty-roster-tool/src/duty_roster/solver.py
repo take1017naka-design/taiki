@@ -1,0 +1,296 @@
+"""待機当番の割り当て。
+
+やっていること:
+
+1. 日曜は「対象5名から1人1回ずつ」なので、まず日曜だけを総当たりで組む。
+2. 残りの日は、回数配分(quota)をぴったり満たす形で貪欲に組み、
+   入れ替え（2日分のスワップ）による局所探索でコストを下げる。
+3. 日曜の組み合わせ候補ごとに 1〜2 を試し、最も良い解を採用する。
+
+回数配分は「組み方の制約」として常に厳密に守られる（スワップは回数を変えない）。
+優先順位・連日回避・土日祝の偏りはコストとして扱い、低い順に最適化する。
+"""
+
+from __future__ import annotations
+
+import datetime as dt
+import random
+from dataclasses import dataclass, field
+
+from .config import Config
+from .rules import SAT, SUN, RuleEngine
+
+
+@dataclass
+class Solution:
+    assignment: dict[dt.date, str]
+    cost: float
+    counts: dict[str, int]
+    violations: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+
+class Solver:
+    def __init__(self, cfg: Config, engine: RuleEngine):
+        self.cfg = cfg
+        self.engine = engine
+        self.days = engine.days
+        self.members = engine.members
+        self.quota = cfg.quota(engine.days_in_month)
+
+        w = cfg.weights
+        self.tier_weights = [float(x) for x in w["tier"]]
+        self.w_fallback = float(w["fallback_tier"])
+        self.w_consec = float(w["consecutive"])
+        self.w_inelig = float(w["ineligible"])
+        self.w_group_run = float(w["group_run"])
+        self.w_fair = float(w["holiday_fairness"])
+
+        self.group = set(cfg.consecutive_group)
+        self.max_run = cfg.consecutive_group_max_run
+
+        # (人, 日) ごとの可否・優先順位コストを先に展開しておく
+        self.ok: dict[tuple[str, dt.date], bool] = {}
+        self.tier_cost: dict[tuple[str, dt.date], float] = {}
+        for day in self.days:
+            for name in self.members:
+                self.ok[(name, day)] = engine.eligible(name, day)
+                tier = engine.tier(name, day)
+                self.tier_cost[(name, day)] = (
+                    self.tier_weights[tier]
+                    if tier is not None and tier < len(self.tier_weights)
+                    else self.w_fallback
+                )
+        self.red_days = {d for d in self.days if engine.is_red_day(d) or d.weekday() == SAT}
+
+    # -- 評価 --------------------------------------------------------------
+    def evaluate(self, assignment: dict[dt.date, str]) -> float:
+        cost = 0.0
+        for day, name in assignment.items():
+            if not self.ok[(name, day)]:
+                cost += self.w_inelig
+            cost += self.tier_cost[(name, day)]
+
+        days = self.days
+        for i in range(1, len(days)):
+            if assignment.get(days[i]) == assignment.get(days[i - 1]):
+                cost += self.w_consec
+
+        if self.group and self.max_run >= 1:
+            window = self.max_run + 1
+            for i in range(len(days) - window + 1):
+                if all(assignment.get(days[i + k]) in self.group for k in range(window)):
+                    cost += self.w_group_run
+
+        if self.w_fair and self.red_days:
+            pool = [n for n in self.members if any(self.ok[(n, d)] for d in self.red_days)]
+            if pool:
+                counts = {n: 0 for n in pool}
+                for day in self.red_days:
+                    name = assignment.get(day)
+                    if name in counts:
+                        counts[name] += 1
+                mean = sum(counts.values()) / len(pool)
+                cost += self.w_fair * sum((c - mean) ** 2 for c in counts.values())
+        return cost
+
+    # -- 日曜の組み合わせ --------------------------------------------------
+    def sunday_options(self, limit: int) -> list[dict[dt.date, str]]:
+        sundays = [d for d in self.days if d.weekday() == SUN]
+        if not sundays:
+            return [{}]
+        pool = self.cfg.weekend_pool or self.members
+        options: list[tuple[float, dict[dt.date, str]]] = []
+
+        def dfs(index: int, used: set[str], chosen: dict[dt.date, str], cost: float) -> None:
+            if len(options) > 20000:
+                return
+            if index == len(sundays):
+                options.append((cost, dict(chosen)))
+                return
+            day = sundays[index]
+            cands = [
+                n
+                for n in pool
+                if self.ok[(n, day)] and (n not in used or not self.cfg.sunday_once_each)
+            ]
+            for name in cands:
+                chosen[day] = name
+                used.add(name)
+                dfs(index + 1, used, chosen, cost + self.tier_cost[(name, day)])
+                used.discard(name)
+                del chosen[day]
+
+        dfs(0, set(), {}, 0.0)
+        if not options:
+            return []
+        options.sort(key=lambda x: x[0])
+        return [opt for _, opt in options[:limit]]
+
+    # -- 構築 --------------------------------------------------------------
+    def construct(self, fixed: dict[dt.date, str], rng: random.Random) -> dict[dt.date, str] | None:
+        remaining = dict(self.quota)
+        for name in fixed.values():
+            remaining[name] = remaining.get(name, 0) - 1
+        if any(v < 0 for v in remaining.values()):
+            return None
+
+        assignment = dict(fixed)
+        open_days = [d for d in self.days if d not in assignment]
+        # 候補が少ない日から埋める
+        open_days.sort(key=lambda d: (sum(1 for n in self.members if self.ok[(n, d)]), d))
+
+        for day in open_days:
+            pool = [n for n in self.members if remaining.get(n, 0) > 0]
+            cands = [n for n in pool if self.ok[(n, day)]] or pool
+            if not cands:
+                return None
+            prev_day = day - dt.timedelta(days=1)
+            next_day = day + dt.timedelta(days=1)
+            scored = []
+            for name in cands:
+                score = self.tier_cost[(name, day)]
+                if not self.ok[(name, day)]:
+                    score += self.w_inelig
+                if assignment.get(prev_day) == name or assignment.get(next_day) == name:
+                    score += self.w_consec
+                if name in self.group and self._would_extend_run(assignment, day, name):
+                    score += self.w_group_run
+                # 残り回数が多い人を優先して消化する
+                score -= remaining[name] * 5.0
+                score += rng.random() * 8.0
+                scored.append((score, name))
+            scored.sort()
+            chosen = scored[0][1]
+            assignment[day] = chosen
+            remaining[chosen] -= 1
+        return assignment
+
+    def _would_extend_run(self, assignment: dict[dt.date, str], day: dt.date, name: str) -> bool:
+        """name を day に置いたとき、グループの連続が上限を超えるか。"""
+        if self.max_run < 1:
+            return False
+        run = 1
+        d = day - dt.timedelta(days=1)
+        while assignment.get(d) in self.group:
+            run += 1
+            d -= dt.timedelta(days=1)
+        d = day + dt.timedelta(days=1)
+        while assignment.get(d) in self.group:
+            run += 1
+            d += dt.timedelta(days=1)
+        return run > self.max_run
+
+    # -- 局所探索 ----------------------------------------------------------
+    def improve(
+        self, assignment: dict[dt.date, str], sundays: list[dt.date], rng: random.Random, iterations: int
+    ) -> tuple[dict[dt.date, str], float]:
+        best = dict(assignment)
+        best_cost = self.evaluate(best)
+        others = [d for d in self.days if d not in sundays]
+        groups = [g for g in (others, sundays) if len(g) >= 2]
+        if not groups:
+            return best, best_cost
+        for _ in range(iterations):
+            bucket = groups[rng.randrange(len(groups))]
+            d1, d2 = rng.sample(bucket, 2)
+            if best[d1] == best[d2]:
+                continue
+            best[d1], best[d2] = best[d2], best[d1]
+            cost = self.evaluate(best)
+            if cost < best_cost - 1e-9:
+                best_cost = cost
+            else:
+                best[d1], best[d2] = best[d2], best[d1]
+        return best, best_cost
+
+    # -- 実行 --------------------------------------------------------------
+    def solve(self) -> Solution:
+        search = self.cfg.search
+        rng = random.Random(int(search["seed"]))
+        sundays = [d for d in self.days if d.weekday() == SUN]
+        notes: list[str] = []
+
+        options = self.sunday_options(int(search["sunday_candidates"]))
+        if not options:
+            notes.append(
+                "日曜を『1人1回ずつ』で組める組み合わせがありませんでした。"
+                "重複を許して割り当てています（日曜のルールを要確認）。"
+            )
+            saved = self.cfg.raw["roles"]["sunday_once_each"]
+            self.cfg.raw["roles"]["sunday_once_each"] = False
+            options = self.sunday_options(int(search["sunday_candidates"])) or [{}]
+            self.cfg.raw["roles"]["sunday_once_each"] = saved
+
+        best: dict[dt.date, str] | None = None
+        best_cost = float("inf")
+        restarts = max(1, int(search["restarts"]) // max(1, len(options)))
+        iterations = int(search["local_search_iterations"])
+
+        for fixed in options:
+            for _ in range(restarts):
+                built = self.construct(fixed, rng)
+                if built is None:
+                    continue
+                improved, cost = self.improve(built, sundays, rng, iterations)
+                if cost < best_cost:
+                    best, best_cost = improved, cost
+
+        if best is None:
+            raise RuntimeError(
+                "待機表を組めませんでした。回数配分または待機不可条件を見直してください。"
+            )
+
+        counts = {n: 0 for n in self.members}
+        for name in best.values():
+            counts[name] = counts.get(name, 0) + 1
+        return Solution(
+            assignment=best,
+            cost=best_cost,
+            counts=counts,
+            violations=self.collect_violations(best),
+            notes=notes,
+        )
+
+    # -- 検証 --------------------------------------------------------------
+    def collect_violations(self, assignment: dict[dt.date, str]) -> list[str]:
+        out: list[str] = []
+        engine = self.engine
+        for day in self.days:
+            name = assignment[day]
+            elig = engine.eligibility(name, day)
+            if not elig.ok:
+                out.append(f"{day:%m/%d}({'月火水木金土日'[day.weekday()]}) {name}: 待機不可の日に割当（{elig.reason}）")
+            if engine.tier(name, day) is None:
+                out.append(
+                    f"{day:%m/%d} {name}: 優先順位のどれにも当てはまりません"
+                    f"（翌日={engine.next_duty_text(name, day)}）"
+                )
+        for name, target in self.quota.items():
+            actual = sum(1 for v in assignment.values() if v == name)
+            if actual != target:
+                out.append(f"{name}: 回数が目標 {target} 回に対して {actual} 回")
+
+        sundays = [d for d in self.days if d.weekday() == SUN]
+        seen: dict[str, dt.date] = {}
+        for day in sundays:
+            name = assignment[day]
+            if name in seen:
+                out.append(f"日曜の重複: {name}（{seen[name]:%m/%d} と {day:%m/%d}）")
+            seen[name] = day
+
+        if self.group and self.max_run >= 1:
+            window = self.max_run + 1
+            for i in range(len(self.days) - window + 1):
+                span = self.days[i : i + window]
+                if all(assignment[d] in self.group for d in span):
+                    names = "・".join(assignment[d] for d in span)
+                    out.append(
+                        f"{span[0]:%m/%d}〜{span[-1]:%m/%d}: "
+                        f"{'・'.join(sorted(self.group))}が{window}日連続（{names}）"
+                    )
+        return out
+
+
+def solve(cfg: Config, engine: RuleEngine) -> Solution:
+    return Solver(cfg, engine).solve()

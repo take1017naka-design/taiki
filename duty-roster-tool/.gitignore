@@ -1,0 +1,20 @@
+# 氏名・勤務内容を含むファイルは絶対にコミットしない
+config/roster.yaml
+config/*.local.yaml
+data/
+out/
+*.xlsx
+*.xlsm
+*.pdf
+!config/roster.example.yaml
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.DS_Store
