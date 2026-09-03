@@ -174,10 +174,17 @@ DEFAULTS: dict[str, Any] = {
         # 担当ごとの待機日数を出す位置（カレンダーの右横）
         "counts_column": 9,
         "counts_row": 3,
-        # カレンダーのセルの大きさ。日付行と氏名行を同じ高さにして枡目をそろえる。
-        "calendar_column_width": 13.0,
-        "calendar_date_row_height": 21.0,
-        "calendar_name_row_height": 21.0,
+        # カレンダーのセルの大きさ。A4横1ページいっぱいになるようにしてある。
+        # （印刷可能領域 10.89 x 7.47 インチ に対して 10.77 x 6.94 インチ）
+        "calendar_column_width": 17.0,
+        "calendar_date_row_height": 36.0,
+        "calendar_name_row_height": 36.0,
+        # 文字の大きさ
+        "title_font_size": 18,
+        "weekday_font_size": 14,
+        "date_font_size": 14,
+        "name_font_size": 18,
+        "counts_font_size": 12,
         # カレンダーのセルの塗り。日曜・祝日は同じ色、土曜は薄い青。
         "holiday_fill": "FFFDE9E9",
         "saturday_fill": "FFDEEBF7",

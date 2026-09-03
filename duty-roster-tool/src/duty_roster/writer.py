@@ -101,8 +101,9 @@ def _sheet_calendar(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Sol
     out = cfg.output
 
     ws.cell(row=1, column=1, value=f"{engine.year}年{engine.month}月　カテ待機表").font = Font(
-        size=14, bold=True
+        size=int(out.get("title_font_size", 18)), bold=True
     )
+    ws.row_dimensions[1].height = int(out.get("title_font_size", 18)) * 1.6
     header = ["日", "月", "火", "水", "木", "金", "土"]
     for i, label in enumerate(header, start=1):
         cell = ws.cell(row=3, column=i, value=label)
@@ -113,9 +114,10 @@ def _sheet_calendar(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Sol
             if i == 1
             else out["saturday_font_color"] if i == 7 else out["weekday_font_color"]
         )
-        cell.font = Font(bold=True, color=color)
+        cell.font = Font(bold=True, color=color, size=int(out.get("weekday_font_size", 14)))
         cell.fill = PatternFill("solid", fgColor="FFF2F2F2")
         ws.column_dimensions[get_column_letter(i)].width = float(out["calendar_column_width"])
+    ws.row_dimensions[3].height = int(out.get("weekday_font_size", 14)) * 1.6
 
     # 日曜始まりの列位置（Python の weekday は月=0 なので +1 して 7 で割る）
     def column_of(day: dt.date) -> int:
@@ -129,11 +131,16 @@ def _sheet_calendar(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Sol
             row += 2
         prev_col = col
         date_cell = ws.cell(row=row, column=col, value=day.day)
-        date_cell.font = Font(bold=True, color=_day_font_color(engine, day, out))
+        date_cell.font = Font(
+            bold=True,
+            color=_day_font_color(engine, day, out),
+            size=int(out.get("date_font_size", 14)),
+        )
         date_cell.alignment = Alignment(horizontal="left", vertical="center")
         date_cell.border = Border(left=THIN, right=THIN, top=THIN)
 
         name_cell = ws.cell(row=row + 1, column=col, value=solution.assignment[day])
+        name_cell.font = Font(size=int(out.get("name_font_size", 18)))
         name_cell.alignment = CENTER
         name_cell.border = Border(left=THIN, right=THIN, bottom=THIN)
         fill = _day_fill(engine, day, out)
@@ -169,12 +176,13 @@ def _counts_block(ws, cfg: Config, engine: RuleEngine, solution: Solution) -> No
     quota = cfg.quota(engine.days_in_month)
 
     ws.column_dimensions[get_column_letter(col - 1)].width = 2.5
-    ws.column_dimensions[get_column_letter(col)].width = 10
-    ws.column_dimensions[get_column_letter(col + 1)].width = 7
+    ws.column_dimensions[get_column_letter(col)].width = 11
+    ws.column_dimensions[get_column_letter(col + 1)].width = 8
 
+    size = int(cfg.output.get("counts_font_size", 12))
     for offset, label in enumerate(("担当", "日数")):
         cell = ws.cell(row=row, column=col + offset, value=label)
-        cell.font = Font(bold=True)
+        cell.font = Font(bold=True, size=size)
         cell.alignment = CENTER
         cell.border = BOX
         cell.fill = PatternFill("solid", fgColor="FFF2F2F2")
@@ -183,23 +191,25 @@ def _counts_block(ws, cfg: Config, engine: RuleEngine, solution: Solution) -> No
         count = solution.counts.get(name, 0)
         target = quota.get(name, 0)
         name_cell = ws.cell(row=row + index, column=col, value=name)
+        name_cell.font = Font(size=size)
         name_cell.border = BOX
         name_cell.alignment = Alignment(horizontal="left", vertical="center")
 
         count_cell = ws.cell(row=row + index, column=col + 1, value=count)
+        count_cell.font = Font(size=size)
         count_cell.border = BOX
         count_cell.alignment = CENTER
         if count != target:
             # 目標と食い違っていたら赤字で目立たせる（通常は起こらない）
-            count_cell.font = Font(color="FFFF0000", bold=True)
+            count_cell.font = Font(color="FFFF0000", bold=True, size=size)
 
     total_row = row + len(engine.members) + 1
     total = ws.cell(row=total_row, column=col, value="合計")
-    total.font = Font(bold=True)
+    total.font = Font(bold=True, size=size)
     total.border = BOX
     total.alignment = Alignment(horizontal="left", vertical="center")
     total_value = ws.cell(row=total_row, column=col + 1, value=sum(solution.counts.values()))
-    total_value.font = Font(bold=True)
+    total_value.font = Font(bold=True, size=size)
     total_value.border = BOX
     total_value.alignment = CENTER
 

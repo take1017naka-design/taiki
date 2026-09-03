@@ -127,8 +127,20 @@ def test_writer_produces_all_sheets(august, tmp_path):
     assert weekday is None
 
     # 枡目の大きさがそろっていること
-    assert ws.column_dimensions["A"].width == ws.column_dimensions["G"].width == 13.0
-    assert ws.row_dimensions[4].height == ws.row_dimensions[5].height == 21.0
+    assert ws.column_dimensions["A"].width == ws.column_dimensions["G"].width == 17.0
+    assert ws.row_dimensions[4].height == ws.row_dimensions[5].height == 36.0
+
+    # A4横（余白0.4インチ）の印刷可能領域 10.89 x 7.47 インチに収まること
+    def col_px(width):
+        return width * 7 + 5
+
+    width_in = (
+        7 * col_px(17.0) + col_px(2.5) + col_px(11) + col_px(8)
+    ) / 96
+    weeks = sum(1 for r in range(4, ws.max_row + 1, 2) if ws.cell(row=r, column=1).value or True)
+    height_in = (29 + 23 + 12 * 36 + 18) / 72   # 表題+曜日+最大6週+注記
+    assert width_in <= 10.89, width_in
+    assert height_in <= 7.47, height_in
 
     # カレンダーの右横に担当ごとの日数が出ていること
     assert ws.cell(row=3, column=9).value == "担当"

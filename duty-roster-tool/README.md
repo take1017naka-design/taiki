@@ -155,9 +155,14 @@ output:
   # directory: "~/Desktop/待機表"                # デスクトップに出す
   filename: "待機表_{year}{month:02d}.xlsx"
   # カレンダーの見た目
-  calendar_column_width: 13.0
-  calendar_date_row_height: 21.0
-  calendar_name_row_height: 21.0
+  calendar_column_width: 17.0
+  calendar_date_row_height: 36.0
+  calendar_name_row_height: 36.0
+  title_font_size: 18
+  weekday_font_size: 14
+  date_font_size: 14
+  name_font_size: 18
+  counts_font_size: 12
   paper_size: 9               # 9 = A4
   paper_landscape: true       # 横向き
   page_margin_inch: 0.4
@@ -180,6 +185,8 @@ duty-roster generate -s 202609.xlsx -o "D:/共有/9月の待機表.xlsx" # フ�
 **全シートに印刷設定（A4横・幅を1ページに収める・余白0.4インチ・用紙の中央に配置）が
 入っている**ので、開いてそのまま印刷できます。待機表は印刷範囲も設定済みで1ページに収まり、
 上下左右とも用紙の中央に出ます（複数ページになるシートは左右のみ中央）。
+待機表の枡目と文字は **A4横1ページいっぱいの大きさ**にしてあります
+（6週の月で 10.77 × 7.26 インチ／印刷可能領域 10.89 × 7.47 インチ）。
 
 出力ファイルには5シート入っています:
 
