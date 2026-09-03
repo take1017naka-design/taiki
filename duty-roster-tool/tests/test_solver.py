@@ -89,6 +89,23 @@ def test_sunday_priority_is_not_traded_away(august):
         assert better == [], f"{day:%m/%d} は {better} の方が優先順位が上"
 
 
+def test_unconditional_sunday_candidate_beats_conditional_one(august):
+    """日曜は、制限なしの候補がいれば優先順位が下でもそちらを使う。"""
+    engine, solution = august
+    sundays = [d for d in engine.days if d.weekday() == 6]
+    used = {solution.assignment[d] for d in sundays}
+    for day in sundays:
+        if not engine.eligibility(solution.assignment[day], day).conditional:
+            continue
+        # △ を使った日は、未使用かつ制限なしの候補が残っていないはず
+        free = [
+            n
+            for n in engine.candidates(day)
+            if n not in used and not engine.eligibility(n, day).conditional
+        ]
+        assert free == [], f"{day:%m/%d} は制限なしの {free} を使えるはず"
+
+
 def test_writer_produces_all_sheets(august, tmp_path):
     engine, solution = august
     out = write_roster(tmp_path / "roster.xlsx", CFG, engine, solution)

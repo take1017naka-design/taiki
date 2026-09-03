@@ -75,9 +75,11 @@ priority:
 weights:
   tier: [0, 60, 150, 240, 900]   # 第1〜第5優先のコスト
   fallback_tier: 4000       # どの優先順位にも当てはまらない人を充てた場合
-  consecutive: 400          # 連日待機（優先順位1〜2段ぶんより重く扱う）
-  sunday_prev_absent: 200   # 日曜に「前日(土)不在」の人を充てる（連日より優先）
-  sunday_tier_multiplier: 20  # 日曜の優先順位を平日より重く扱う倍率
+  # ソフト条件の強さは次の順序になるように決めてある:
+  #   連日待機を避ける > 前日(土)不在の候補(△)を使わない > 日曜の優先順位
+  consecutive: 1500          # 連日待機
+  sunday_prev_absent: 1300   # 日曜に「前日(土)不在」の候補(△)を充てる
+  sunday_tier_multiplier: 20 # 日曜の優先順位を平日より重く扱う倍率（第2優先=60x20=1200）
   ineligible: 1000000       # 待機不可の日に充てた場合（ハード制約）
   group_run: 1000000        # consecutive_group の連続超過（ハード制約）
   holiday_fairness: 15      # 土日祝の回数の偏り
