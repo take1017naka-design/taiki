@@ -28,6 +28,10 @@ DEFAULTS: dict[str, Any] = {
         # この集団の待機が max_run 日を超えて連続してはいけない
         "consecutive_group": [],
         "consecutive_group_max_run": 2,
+        # 1人あたり同じ週（日曜始まり）に入る回数の目安
+        "max_per_week": 2,
+        # この日数より短い間隔で同じ人が入るのを避ける（1=連日）
+        "min_gap_days": 3,
         # 土日の待機対象者
         "weekend_pool": [],
         # 日曜は「この中から1人1回ずつ」
@@ -70,6 +74,10 @@ DEFAULTS: dict[str, Any] = {
             ["ME", "OHP", "内視", "機", "災", "業", "労", "研修", "材料"],
             ["OP", "アーム", ""],
         ],
+        # 日曜は、翌日(月)がこれらの勤務（手術室）だけの人は待機不可。
+        # "" は空白（記載なし＝手術室勤務）を表す。
+        # ただし連休（翌日が祝日、または対象者全員が不在）のときはこの制限を外す。
+        "sun_blocked_next_duties": ["OP", "アーム", ""],
         # 金曜: 翌日(土)に勤務がある人を優先、次点はそれ以外
         "fri_mode": "next_day_working",
         # 土曜: weekend_pool の在席者（優先順位なし）
@@ -84,6 +92,10 @@ DEFAULTS: dict[str, Any] = {
         # sunday_prev_absent より大きくして、「連日になるくらいなら
         # 前日(土)不在の候補を使う」順序にしている。
         "consecutive": 1500,
+        # 間隔が min_gap_days 未満（連日を除く＝中1日など）1件あたり
+        "short_gap": 400,
+        # 同じ週に max_per_week を超えて入る1回あたり
+        "week_overload": 800,
         # 日曜に「前日(土)が不在」の人を充てる場合のコスト。
         # 日曜の優先順位の差（tier × sunday_tier_multiplier）より大きくして、
         # 「制限なしの候補がいるなら、優先順位が下でもそちらを使う」順序にしている。
@@ -111,6 +123,11 @@ DEFAULTS: dict[str, Any] = {
     # 日本の祝日を自動計算する。False にすると holidays に書いた日だけを使う。
     "holidays_auto": True,
     "holidays": [],
+    # 勤務表から読み取れない事情を手で足す。氏名 -> 日付（と理由）のリスト。
+    #   manual_unavailable:
+    #     坂本: ["2026-09-20"]
+    #     一戸: [{date: "2026-09-13", reason: "研究会"}]
+    "manual_unavailable": {},
     "excel": {
         "sheet": None,          # None なら先頭シート
         "header_row": None,     # None なら自動検出（1〜31が並ぶ行）
@@ -193,6 +210,14 @@ class Config:
         return int(self.raw["roles"].get("consecutive_group_max_run", 2))
 
     @property
+    def max_per_week(self) -> int:
+        return int(self.raw["roles"].get("max_per_week", 0))
+
+    @property
+    def min_gap_days(self) -> int:
+        return int(self.raw["roles"].get("min_gap_days", 1))
+
+    @property
     def weekend_pool(self) -> list[str]:
         return [str(x) for x in self.raw["roles"].get("weekend_pool", [])]
 
@@ -239,8 +264,35 @@ class Config:
         return bool(self.raw.get("holidays_auto", True))
 
     @property
+    def manual_unavailable(self) -> dict[str, dict[dt.date, str]]:
+        out: dict[str, dict[dt.date, str]] = {}
+        for name, entries in (self.raw.get("manual_unavailable") or {}).items():
+            days: dict[dt.date, str] = {}
+            for entry in entries or []:
+                if isinstance(entry, dict):
+                    raw_date, reason = entry.get("date"), str(entry.get("reason", "手動指定"))
+                else:
+                    raw_date, reason = entry, "手動指定"
+                if isinstance(raw_date, dt.datetime):
+                    day = raw_date.date()
+                elif isinstance(raw_date, dt.date):
+                    day = raw_date
+                else:
+                    day = dt.date.fromisoformat(str(raw_date).strip())
+                days[day] = reason
+            out[str(name)] = days
+        return out
+
+    @property
     def priority(self) -> dict[str, Any]:
         return self.raw["priority"]
+
+    @property
+    def sun_blocked_next_duties(self) -> set[str]:
+        return {
+            normalize_code(c)
+            for c in self.raw["priority"].get("sun_blocked_next_duties", [])
+        }
 
     @property
     def weights(self) -> dict[str, Any]:
@@ -339,6 +391,7 @@ def validate(cfg: Config) -> None:
     check("roles.backup_dependents", cfg.backup_dependents)
     check("roles.consecutive_group", cfg.consecutive_group)
     check("roles.weekend_pool", cfg.weekend_pool)
+    check("manual_unavailable", list(cfg.manual_unavailable))
 
     table = cfg.raw["quota_by_month_length"]
     if not table:

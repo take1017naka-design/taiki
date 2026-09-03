@@ -21,6 +21,14 @@ from .config import Config
 from .rules import SAT, SUN, RuleEngine
 
 
+# 2000-01-02 は日曜。日曜始まりの週番号を出すための基準日。
+WEEK_ANCHOR = dt.date(2000, 1, 2)
+
+
+def week_index(day: dt.date) -> int:
+    return (day - WEEK_ANCHOR).days // 7
+
+
 @dataclass
 class Solution:
     assignment: dict[dt.date, str]
@@ -49,8 +57,13 @@ class Solver:
         # 優先順位のコストを重くして、平日側の都合で崩されないようにする。
         self.sunday_tier_multiplier = float(w.get("sunday_tier_multiplier", 20))
 
+        self.w_short_gap = float(w.get("short_gap", 0))
+        self.w_week_overload = float(w.get("week_overload", 0))
+
         self.group = set(cfg.consecutive_group)
         self.max_run = cfg.consecutive_group_max_run
+        self.max_per_week = cfg.max_per_week
+        self.min_gap_days = cfg.min_gap_days
 
         # (人, 日) ごとの可否・優先順位コストを先に展開しておく
         self.ok: dict[tuple[str, dt.date], bool] = {}
@@ -79,10 +92,30 @@ class Solver:
                 cost += self.w_inelig
             cost += self.tier_cost[(name, day)]
 
+        # 同じ人の待機が近接しないように散らす
+        days_of: dict[str, list[dt.date]] = {}
+        for day, name in assignment.items():
+            days_of.setdefault(name, []).append(day)
+        for mine in days_of.values():
+            mine.sort()
+            for earlier, later in zip(mine, mine[1:]):
+                gap = (later - earlier).days
+                if gap == 1:
+                    cost += self.w_consec
+                elif gap < self.min_gap_days:
+                    cost += self.w_short_gap
+
+        # 同じ週（日曜始まり）に集中しないように
+        if self.w_week_overload and self.max_per_week:
+            per_week: dict[tuple[str, int], int] = {}
+            for day, name in assignment.items():
+                key = (name, week_index(day))
+                per_week[key] = per_week.get(key, 0) + 1
+            for count in per_week.values():
+                if count > self.max_per_week:
+                    cost += self.w_week_overload * (count - self.max_per_week)
+
         days = self.days
-        for i in range(1, len(days)):
-            if assignment.get(days[i]) == assignment.get(days[i - 1]):
-                cost += self.w_consec
 
         if self.group and self.max_run >= 1:
             window = self.max_run + 1
@@ -162,6 +195,22 @@ class Solver:
                     score += self.w_inelig
                 if assignment.get(prev_day) == name or assignment.get(next_day) == name:
                     score += self.w_consec
+                else:
+                    near = [
+                        d
+                        for offset in range(2, max(2, self.min_gap_days))
+                        for d in (day - dt.timedelta(days=offset), day + dt.timedelta(days=offset))
+                        if assignment.get(d) == name
+                    ]
+                    score += self.w_short_gap * len(near)
+                if self.max_per_week:
+                    same_week = sum(
+                        1
+                        for d, n in assignment.items()
+                        if n == name and week_index(d) == week_index(day)
+                    )
+                    if same_week >= self.max_per_week:
+                        score += self.w_week_overload
                 if name in self.group and self._would_extend_run(assignment, day, name):
                     score += self.w_group_run
                 # 残り回数が多い人を優先して消化する
@@ -257,8 +306,30 @@ class Solver:
             cost=best_cost,
             counts=counts,
             violations=self.collect_violations(best),
-            notes=notes + self.collect_conditional_notes(best),
+            notes=notes + self.collect_conditional_notes(best) + self.collect_spread_notes(best),
         )
+
+    def collect_spread_notes(self, assignment: dict[dt.date, str]) -> list[str]:
+        """間隔が近い・同じ週に集中している箇所を書き出す。"""
+        out = []
+        days_of: dict[str, list[dt.date]] = {}
+        for day, name in assignment.items():
+            days_of.setdefault(name, []).append(day)
+        for name, mine in sorted(days_of.items()):
+            mine.sort()
+            for earlier, later in zip(mine, mine[1:]):
+                gap = (later - earlier).days
+                if 1 < gap < self.min_gap_days:
+                    out.append(f"{name}: {earlier:%m/%d} と {later:%m/%d}（間隔{gap}日）")
+        if self.max_per_week:
+            per_week: dict[tuple[str, int], list[dt.date]] = {}
+            for day, name in assignment.items():
+                per_week.setdefault((name, week_index(day)), []).append(day)
+            for (name, _), days in sorted(per_week.items(), key=lambda x: (x[0][0], x[0][1])):
+                if len(days) > self.max_per_week:
+                    span = "・".join(f"{d:%m/%d}" for d in sorted(days))
+                    out.append(f"{name}: 同じ週に{len(days)}回（{span}）")
+        return out
 
     def collect_conditional_notes(self, assignment: dict[dt.date, str]) -> list[str]:
         """条件付きで可の候補を使った日を書き出す。"""

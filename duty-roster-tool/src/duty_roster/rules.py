@@ -54,6 +54,8 @@ class RuleEngine:
         self.holiday_relaxed = cfg.holiday_relaxed
         self.duty_source = cfg.priority.get("duty_source", "both")
         self.weekend_pool = set(cfg.weekend_pool) or set(self.members)
+        self.sun_blocked_next_duties = cfg.sun_blocked_next_duties
+        self.manual_unavailable = cfg.manual_unavailable
         self._elig_cache: dict[tuple[str, dt.date], Eligibility] = {}
         self._all_absent_cache: dict[dt.date, bool] = {}
 
@@ -148,6 +150,14 @@ class RuleEngine:
             )
         return self._all_absent_cache[day]
 
+    def is_long_weekend_start(self, day: dt.date) -> bool:
+        """その日の翌日が休み（祝日、または対象者全員が不在）か。
+
+        連休の場合、日曜の「翌日(月)に出勤する人」という条件を外す。
+        """
+        nxt = day + dt.timedelta(days=1)
+        return self.is_holiday_like(nxt) or self.is_all_absent_day(nxt)
+
     @property
     def exception_days(self) -> list[dt.date]:
         return [d for d in self.days if self.is_all_absent_day(d)]
@@ -170,6 +180,11 @@ class RuleEngine:
 
     def _eligibility(self, name: str, day: dt.date) -> Eligibility:
         wd = day.weekday()
+
+        # 0. 設定での手動指定（勤務表から読み取れない事情）
+        manual = self.manual_unavailable.get(name, {})
+        if day in manual:
+            return Eligibility(False, f"手動で待機不可に指定（{manual[day]}）")
 
         # 4. 土日は担当プールが限定される
         if wd in (SAT, SUN) and name not in self.weekend_pool:
@@ -197,9 +212,16 @@ class RuleEngine:
         if wd == SUN:
             prev_day = day - dt.timedelta(days=1)
             next_day = day + dt.timedelta(days=1)
-            # 翌日(月)が不在の人は対象外（日曜は翌日出勤者が担当する）
-            if self.is_absent(name, next_day):
-                return Eligibility(False, "翌日(月)が不在")
+            # 連休（翌日が祝日、または全員不在）なら翌日の条件は問わない
+            if not self.is_long_weekend_start(day):
+                # 翌日(月)が不在の人は対象外（日曜は翌日出勤者が担当する）
+                if self.is_absent(name, next_day):
+                    return Eligibility(False, "翌日(月)が不在")
+                # 翌日(月)が手術室勤務（空白・OP・アーム）だけの人は対象外
+                duties = self.next_day_duties(name, day)
+                if not [d for d in duties if d not in self.sun_blocked_next_duties]:
+                    label = "/".join(duties) if duties else "空白"
+                    return Eligibility(False, f"翌日(月)が手術室勤務（{label}）")
             # 前日(土)が不在の人は、他に組めない場合に限って候補にする。
             # 当日(日)が赤字・黄色でないことは、ここまでの判定で確認済み。
             if self.is_absent(name, prev_day):

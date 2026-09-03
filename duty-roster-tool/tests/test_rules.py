@@ -53,11 +53,67 @@ def test_sunday_kou_is_available_unless_red():
     engine = build_engine(
         {
             ("担当C", d(2)): [Cell(text="公")],
+            ("担当C", d(3)): [Cell(text="ME")],
             ("担当D", d(2)): [Cell(text="公", red=True)],
+            ("担当D", d(3)): [Cell(text="ME")],
         }
     )
     assert engine.eligible("担当C", d(2))
     assert not engine.eligible("担当D", d(2))
+
+
+def test_sunday_blocked_when_monday_is_operating_room():
+    """翌日(月)が手術室勤務（空白・OP・アーム）だけの人は日曜の待機不可。"""
+    engine = build_engine(
+        {
+            ("担当C", d(2)): [Cell(text="公")],
+            ("担当C", d(3)): [],                      # 空白＝手術室
+            ("担当D", d(2)): [Cell(text="公")],
+            ("担当D", d(3)): [Cell(text="OP")],
+            ("担当E", d(2)): [Cell(text="公")],
+            ("担当E", d(3)): [Cell(text="内視")],
+        }
+    )
+    assert not engine.eligible("担当C", d(2))
+    assert "手術室" in engine.eligibility("担当C", d(2)).reason
+    assert not engine.eligible("担当D", d(2))
+    assert engine.eligible("担当E", d(2))
+
+
+def test_long_weekend_lifts_the_monday_condition():
+    """連休（翌日が祝日）なら、翌日の勤務内容や不在を問わない。"""
+    # 2026-09-20(日) の翌日 9/21 は敬老の日
+    import datetime
+
+    from duty_roster.rules import RuleEngine
+    from duty_roster.workbook import DayCells, WorkSchedule
+
+    cells = {
+        ("担当C", datetime.date(2026, 9, 20)): DayCells([Cell(text="公")]),
+        ("担当C", datetime.date(2026, 9, 21)): DayCells([Cell(text="公")]),
+        ("担当D", datetime.date(2026, 9, 20)): DayCells([Cell(text="公", red=True)]),
+    }
+    schedule = WorkSchedule(2026, 9, cells, CFG.member_names)
+    engine = RuleEngine(CFG, schedule, 2026, 9)
+    sunday = datetime.date(2026, 9, 20)
+    assert engine.is_long_weekend_start(sunday)
+    assert engine.eligible("担当C", sunday)      # 翌日が空白でも可
+    assert not engine.eligible("担当D", sunday)  # 当日が赤字なら不可
+
+
+def test_manual_unavailable_blocks_the_day():
+    import copy
+
+    from duty_roster.config import Config
+
+    raw = copy.deepcopy(CFG.raw)
+    raw["manual_unavailable"] = {"担当C": ["2026-08-04"]}
+    cfg = Config(raw=raw)
+    schedule = WorkSchedule(YEAR, MONTH, {}, cfg.member_names)
+    engine = RuleEngine(cfg, schedule, YEAR, MONTH)
+    assert not engine.eligible("担当C", d(4))
+    assert "手動" in engine.eligibility("担当C", d(4)).reason
+    assert engine.eligible("担当D", d(4))
 
 
 def test_sunday_needs_someone_working_on_monday():
@@ -143,7 +199,9 @@ def test_sunday_excludes_next_monday_absence():
 
 def test_sunday_previous_saturday_absence_is_only_conditional():
     """前日(土)不在は、他に組めないときだけ使う候補（当日が赤字でなければ可）。"""
-    engine = build_engine({("担当B", d(1)): [Cell(text="有")]})
+    engine = build_engine(
+        {("担当B", d(1)): [Cell(text="有")], ("担当B", d(3)): [Cell(text="ME")]}
+    )
     elig = engine.eligibility("担当B", d(2))
     assert elig.ok
     assert elig.conditional
@@ -155,6 +213,7 @@ def test_sunday_red_stays_impossible_even_with_saturday_absence():
         {
             ("担当B", d(1)): [Cell(text="有")],
             ("担当B", d(2)): [Cell(text="公", red=True)],
+            ("担当B", d(3)): [Cell(text="ME")],
         }
     )
     assert not engine.eligible("担当B", d(2))

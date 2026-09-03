@@ -31,6 +31,10 @@ roles:
   # この3名の待機が max_run 日を超えて連続しないようにする（ハード制約）
   consecutive_group: [担当A, 担当G, 担当H]
   consecutive_group_max_run: 2
+  # 1人あたり同じ週（日曜始まり）に入る回数の目安
+  max_per_week: 2
+  # この日数より短い間隔で同じ人が入るのを避ける（1=連日）
+  min_gap_days: 3
   # 土日の担当対象者
   weekend_pool: [担当B, 担当C, 担当D, 担当E, 担当F]
   # 日曜は weekend_pool から1人1回ずつ
@@ -67,7 +71,10 @@ priority:
     - ["OP", "アーム", ""]                    # 第5優先（"" は空白）
   sun:
     - ["ME", "OHP", "内視", "機", "災", "業", "労", "研修", "材料"]
-    - ["OP", "アーム", ""]
+    - ["OP", "アーム", ""]     # 連休のときだけ使う（下記参照）
+  # 日曜は、翌日(月)がこれらの勤務（手術室）だけの人は待機不可。"" は空白。
+  # 連休（翌日が祝日、または対象者全員が不在）のときはこの制限を外す。
+  sun_blocked_next_duties: ["OP", "アーム", ""]
   fri_mode: next_day_working   # 金曜は翌日(土)に勤務がある人を優先
   sat_mode: weekend_pool
 
@@ -78,6 +85,8 @@ weights:
   # ソフト条件の強さは次の順序になるように決めてある:
   #   連日待機を避ける > 前日(土)不在の候補(△)を使わない > 日曜の優先順位
   consecutive: 1500          # 連日待機
+  short_gap: 400             # 間隔が min_gap_days 未満（中1日など）
+  week_overload: 800         # 同じ週に max_per_week を超えて入る
   sunday_prev_absent: 1300   # 日曜に「前日(土)不在」の候補(△)を充てる
   sunday_tier_multiplier: 20 # 日曜の優先順位を平日より重く扱う倍率（第2優先=60x20=1200）
   ineligible: 1000000       # 待機不可の日に充てた場合（ハード制約）
@@ -98,6 +107,12 @@ colors:
 holidays_auto: true
 holidays: []       # 院内の特別休など、追加したい日があればここに
 #  - 2026-12-30
+
+# 勤務表から読み取れない事情（色が付いていない希望休など）を手で足す
+manual_unavailable: {}
+#  担当B:
+#    - 2026-09-20
+#    - {date: 2026-09-13, reason: 研究会}
 
 # Excel の読み取り（既定は自動検出。うまく検出できないときだけ指定する）
 excel:
