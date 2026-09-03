@@ -130,6 +130,33 @@ def test_writer_produces_all_sheets(august, tmp_path):
     assert ws.column_dimensions["A"].width == ws.column_dimensions["G"].width == 13.0
     assert ws.row_dimensions[4].height == ws.row_dimensions[5].height == 21.0
 
+    # カレンダーの右横に担当ごとの日数が出ていること
+    assert ws.cell(row=3, column=9).value == "担当"
+    assert ws.cell(row=3, column=10).value == "日数"
+    counts = {
+        ws.cell(row=3 + i, column=9).value: ws.cell(row=3 + i, column=10).value
+        for i in range(1, len(engine.members) + 1)
+    }
+    assert counts == solution.counts
+    assert ws.cell(row=3 + len(engine.members) + 1, column=9).value == "合計"
+    assert ws.cell(row=3 + len(engine.members) + 1, column=10).value == engine.days_in_month
+
+
+def test_sheets_are_ready_to_print(august, tmp_path):
+    engine, solution = august
+    out = write_roster(tmp_path / "print.xlsx", CFG, engine, solution)
+    from openpyxl import load_workbook
+
+    wb = load_workbook(out)
+    for name in wb.sheetnames:
+        ws = wb[name]
+        assert ws.page_setup.paperSize == 9              # A4
+        assert ws.page_setup.orientation == "landscape"  # 横
+        assert ws.page_setup.fitToWidth == 1
+        assert ws.sheet_properties.pageSetUpPr.fitToPage is True
+    area = wb["待機表"].print_area
+    assert area.startswith("'待機表'!$A$1:$J$")   # 日数欄(J列)まで印刷範囲に入る
+
 
 def test_short_month_also_solves(february):
     engine, solution = february

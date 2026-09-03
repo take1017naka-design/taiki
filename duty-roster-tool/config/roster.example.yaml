@@ -132,6 +132,13 @@ output:
   # 既定はダウンロードフォルダの中の「待機表」フォルダ（無ければ自動で作る）
   directory: "~/Downloads/待機表"
   filename: "待機表_{year}{month:02d}.xlsx"   # {year} {month} が使える
+  # 印刷設定（そのまま印刷できるようにしてある）
+  paper_size: 9          # 9 = A4
+  paper_landscape: true  # 横向き
+  page_margin_inch: 0.4
+  # 担当ごとの待機日数を出す位置（カレンダーの右横）
+  counts_column: 9
+  counts_row: 3
   # カレンダーの枡目の大きさ（日付行と氏名行を同じ高さにしてそろえる）
   calendar_column_width: 13.0
   calendar_date_row_height: 21.0

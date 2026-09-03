@@ -8,10 +8,40 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.page import PageMargins
+from openpyxl.worksheet.properties import PageSetupProperties
 
 from .config import Config
 from .rules import SAT, SUN, WEEKDAY_JP, RuleEngine
 from .solver import Solution
+
+def setup_print(
+    ws,
+    cfg: Config,
+    *,
+    area: str | None = None,
+    fit_height: int | None = 1,
+    repeat_rows: str | None = None,
+) -> None:
+    """そのまま印刷できるようにページ設定を入れる（既定 A4 横・幅を1ページに収める）。"""
+    out = cfg.output
+    ws.page_setup.paperSize = int(out.get("paper_size", 9))  # 9 = A4
+    ws.page_setup.orientation = (
+        "landscape" if out.get("paper_landscape", True) else "portrait"
+    )
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0 if fit_height is None else fit_height
+    ws.sheet_properties.pageSetUpPr = PageSetupProperties(fitToPage=True)
+    margin = float(out.get("page_margin_inch", 0.4))
+    ws.page_margins = PageMargins(
+        left=margin, right=margin, top=margin, bottom=margin, header=0.2, footer=0.2
+    )
+    ws.print_options.horizontalCentered = True
+    if area:
+        ws.print_area = area
+    if repeat_rows:
+        ws.print_title_rows = repeat_rows
+
 
 THIN = Side(style="thin", color="FF999999")
 BOX = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
@@ -49,10 +79,10 @@ def write_roster(
     wb = Workbook()
 
     _sheet_calendar(wb, cfg, engine, solution)
-    _sheet_list(wb, engine, solution)
+    _sheet_list(wb, cfg, engine, solution)
     _sheet_summary(wb, cfg, engine, solution)
-    _sheet_availability(wb, engine)
-    _sheet_notes(wb, solution, warnings or [])
+    _sheet_availability(wb, cfg, engine)
+    _sheet_notes(wb, cfg, solution, warnings or [])
 
     wb.save(path)
     return path
@@ -114,8 +144,60 @@ def _sheet_calendar(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Sol
         size=9, color="FF808080"
     )
 
+    _counts_block(ws, cfg, engine, solution)
 
-def _sheet_list(wb: Workbook, engine: RuleEngine, solution: Solution) -> None:
+    last_col = int(cfg.output.get("counts_column", 9)) + 1
+    setup_print(
+        ws,
+        cfg,
+        area=f"A1:{get_column_letter(last_col)}{row + 3}",
+        fit_height=1,
+    )
+
+
+def _counts_block(ws, cfg: Config, engine: RuleEngine, solution: Solution) -> None:
+    """カレンダーの右横に、担当ごとの待機日数を出す。"""
+    col = int(cfg.output.get("counts_column", 9))
+    row = int(cfg.output.get("counts_row", 3))
+    quota = cfg.quota(engine.days_in_month)
+
+    ws.column_dimensions[get_column_letter(col - 1)].width = 2.5
+    ws.column_dimensions[get_column_letter(col)].width = 10
+    ws.column_dimensions[get_column_letter(col + 1)].width = 7
+
+    for offset, label in enumerate(("担当", "日数")):
+        cell = ws.cell(row=row, column=col + offset, value=label)
+        cell.font = Font(bold=True)
+        cell.alignment = CENTER
+        cell.border = BOX
+        cell.fill = PatternFill("solid", fgColor="FFF2F2F2")
+
+    for index, name in enumerate(engine.members, start=1):
+        count = solution.counts.get(name, 0)
+        target = quota.get(name, 0)
+        name_cell = ws.cell(row=row + index, column=col, value=name)
+        name_cell.border = BOX
+        name_cell.alignment = Alignment(horizontal="left", vertical="center")
+
+        count_cell = ws.cell(row=row + index, column=col + 1, value=count)
+        count_cell.border = BOX
+        count_cell.alignment = CENTER
+        if count != target:
+            # 目標と食い違っていたら赤字で目立たせる（通常は起こらない）
+            count_cell.font = Font(color="FFFF0000", bold=True)
+
+    total_row = row + len(engine.members) + 1
+    total = ws.cell(row=total_row, column=col, value="合計")
+    total.font = Font(bold=True)
+    total.border = BOX
+    total.alignment = Alignment(horizontal="left", vertical="center")
+    total_value = ws.cell(row=total_row, column=col + 1, value=sum(solution.counts.values()))
+    total_value.font = Font(bold=True)
+    total_value.border = BOX
+    total_value.alignment = CENTER
+
+
+def _sheet_list(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Solution) -> None:
     ws = wb.create_sheet("一覧")
     headers = ["日付", "曜日", "待機者", "採用した優先順位", "翌日の勤務", "同日の他候補"]
     for i, h in enumerate(headers, start=1):
@@ -144,6 +226,7 @@ def _sheet_list(wb: Workbook, engine: RuleEngine, solution: Solution) -> None:
             if i == 2:
                 cell.alignment = CENTER
     ws.freeze_panes = "A2"
+    setup_print(ws, cfg, fit_height=None, repeat_rows="1:1")
 
 
 def _sheet_summary(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Solution) -> None:
@@ -182,8 +265,10 @@ def _sheet_summary(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Solu
             if i == 4 and v != 0:
                 cell.font = Font(color="FFFF0000", bold=True)
 
+    setup_print(ws, cfg, fit_height=1, repeat_rows="1:1")
 
-def _sheet_availability(wb: Workbook, engine: RuleEngine) -> None:
+
+def _sheet_availability(wb: Workbook, cfg: Config, engine: RuleEngine) -> None:
     """読み取り結果の目視確認用。○=待機可 / 記号=不可理由。"""
     ws = wb.create_sheet("可否一覧")
     ws.cell(row=1, column=1, value="待機可否（○=可、△=条件付きで可、×=不可・下に理由）").font = Font(bold=True)
@@ -208,6 +293,7 @@ def _sheet_availability(wb: Workbook, engine: RuleEngine) -> None:
             if engine.is_yellow(name, day):
                 cell.fill = PatternFill("solid", fgColor="FFFFFF00")
     ws.freeze_panes = "B3"
+    setup_print(ws, cfg, fit_height=None, repeat_rows="2:2")
 
     start = len(engine.members) + 5
     ws.cell(row=start, column=1, value="不可・条件付きの理由").font = Font(bold=True)
@@ -224,7 +310,7 @@ def _sheet_availability(wb: Workbook, engine: RuleEngine) -> None:
             r += 1
 
 
-def _sheet_notes(wb: Workbook, solution: Solution, warnings: list[str]) -> None:
+def _sheet_notes(wb: Workbook, cfg: Config, solution: Solution, warnings: list[str]) -> None:
     ws = wb.create_sheet("確認事項")
     ws.column_dimensions["A"].width = 90
     row = 1
@@ -243,3 +329,5 @@ def _sheet_notes(wb: Workbook, solution: Solution, warnings: list[str]) -> None:
             ws.cell(row=row, column=1, value=f"・{item}")
             row += 1
         row += 1
+
+    setup_print(ws, cfg, fit_height=None)

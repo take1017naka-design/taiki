@@ -164,6 +164,13 @@ DEFAULTS: dict[str, Any] = {
         "weekday_font_color": "FF000000",
         "saturday_font_color": "FF0070C0",
         "sunday_font_color": "FFFF0000",
+        # 印刷設定。既定は A4 横・幅を1ページに収める。
+        "paper_size": 9,          # 9 = A4
+        "paper_landscape": True,
+        "page_margin_inch": 0.4,
+        # 担当ごとの待機日数を出す位置（カレンダーの右横）
+        "counts_column": 9,
+        "counts_row": 3,
         # カレンダーのセルの大きさ。日付行と氏名行を同じ高さにして枡目をそろえる。
         "calendar_column_width": 13.0,
         "calendar_date_row_height": 21.0,
