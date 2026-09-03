@@ -154,9 +154,32 @@ def test_priority_tiers_follow_next_day_duty():
     )
     assert engine.tier("担当C", d(4)) == 0     # 翌日 ME
     assert engine.tier("担当D", d(4)) == 1     # 翌日 内視
-    assert engine.tier("担当E", d(4)) == 2     # 翌日 機
-    assert engine.tier("担当F", d(4)) == 3     # 翌日 OP
-    assert engine.tier("担当A", d(4)) == 3     # 翌日 空白
+    assert engine.tier("担当E", d(4)) == 3     # 翌日 機
+    assert engine.tier("担当F", d(4)) == 4     # 翌日 OP
+    assert engine.tier("担当A", d(4)) == 4     # 翌日 空白
+
+
+def test_other_duty_codes_rank_between_naishi_and_ki():
+    """災・業・労・研修・材料 は「内視」と「機」の間の優先順位。"""
+    engine = build_engine(
+        {
+            ("担当C", d(5)): [Cell(text="内視")],
+            ("担当D", d(5)): [Cell(text="研修")],
+            ("担当E", d(5)): [Cell(text="材料")],
+            ("担当F", d(5)): [Cell(text="機")],
+        }
+    )
+    assert engine.tier("担当C", d(4)) == 1
+    assert engine.tier("担当D", d(4)) == 2
+    assert engine.tier("担当E", d(4)) == 2
+    assert engine.tier("担当F", d(4)) == 3
+
+
+def test_other_duty_codes_count_as_working():
+    """これらの記号の日は出勤扱いなので、その前日は待機可能。"""
+    engine = build_engine({("担当C", d(5)): [Cell(text="災")]})
+    assert engine.is_working("担当C", d(5))
+    assert engine.eligible("担当C", d(4))
 
 
 def test_friday_prefers_people_working_on_saturday():
