@@ -57,6 +57,7 @@ class Solver:
         # 優先順位のコストを重くして、平日側の都合で崩されないようにする。
         self.sunday_tier_multiplier = float(w.get("sunday_tier_multiplier", 20))
 
+        self.w_holiday_not_working = float(w.get("holiday_not_working", 0))
         self.w_short_gap = float(w.get("short_gap", 0))
         self.w_week_overload = float(w.get("week_overload", 0))
 
@@ -69,6 +70,8 @@ class Solver:
         self.ok: dict[tuple[str, dt.date], bool] = {}
         self.tier_cost: dict[tuple[str, dt.date], float] = {}
         for day in self.days:
+            # 祝日は、その日に出勤している人がいればその人を優先する
+            holiday_workers = set(engine.holiday_workers(day))
             for name in self.members:
                 elig = engine.eligibility(name, day)
                 self.ok[(name, day)] = elig.ok
@@ -80,6 +83,8 @@ class Solver:
                 )
                 if day.weekday() == SUN:
                     base *= self.sunday_tier_multiplier
+                if holiday_workers and name not in holiday_workers:
+                    base += self.w_holiday_not_working
                 # 条件付きで可の候補は追加コストを載せ、最後の手段にする
                 self.tier_cost[(name, day)] = base + elig.penalty
         self.red_days = {d for d in self.days if engine.is_red_day(d) or d.weekday() == SAT}

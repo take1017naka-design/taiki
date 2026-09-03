@@ -150,6 +150,18 @@ class RuleEngine:
             )
         return self._all_absent_cache[day]
 
+    def works_on(self, name: str, day: dt.date) -> bool:
+        """その日に実際の勤務があるか（記号に勤務内容が入っているか）。"""
+        return bool(self.duty_codes(name, day))
+
+    def holiday_workers(self, day: dt.date) -> list[str]:
+        """祝日に実際に出勤していて、かつ待機可能な人。"""
+        if not self.cfg.priority.get("holiday_prefer_working", True):
+            return []
+        if not self.is_holiday(day):
+            return []
+        return [n for n in self.members if self.works_on(n, day) and self.eligible(n, day)]
+
     def is_long_weekend_start(self, day: dt.date) -> bool:
         """その日の翌日が休み（祝日、または対象者全員が不在）か。
 
@@ -269,6 +281,9 @@ class RuleEngine:
         return None
 
     def tier_label(self, name: str, day: dt.date) -> str:
+        workers = self.holiday_workers(day)
+        if workers:
+            return "祝日（当日出勤）" if name in workers else "祝日（当日出勤者以外）"
         t = self.tier(name, day)
         if t is None:
             return "該当なし"

@@ -89,6 +89,7 @@ python -m duty_roster generate -s data/202608.xlsx -c config/roster.yaml
 | 月〜木 | ① `ME` → ② `OHP` `内視` → ③ `災` `業` `労` `研修` `材料` → ④ `機` → ⑤ `OP` `アーム` 空白 |
 | 金 | ① 翌日(土)に勤務がある人 → ② その他の勤務者 |
 | 土 | 土日担当プールの在席者（優先順位なし） |
+| **祝日** | **その日に出勤している人**（いる場合。祝日は多くが「公」になるため、実際に院内にいる人が担当する）。出勤者がいなければ通常の曜日別ルール |
 | 日 | 翌日(月)が `ME` `OHP` `内視` `機` `災` `業` `労` `研修` `材料` の人。翌日が `OP` `アーム` 空白（＝手術室勤務）の人は**△（他に組めない場合の候補）** |
 
 - 日曜は土日担当プール5名から **1人1回ずつ**（重複なし）。
@@ -193,6 +194,7 @@ duty-roster generate -s 202609.xlsx -o "D:/共有/9月の待機表.xlsx" # フ�
 | `priority` | 曜日別の優先順位 |
 | `colors` | 濃い黄色・赤字の判定しきい値 |
 | `output.directory` / `output.filename` | 待機表の保存先とファイル名 |
+| `priority.holiday_prefer_working` | 祝日は当日出勤者を待機にする |
 | `holidays_auto` / `holidays` | 祝日の自動計算と、追加したい休日 |
 | `manual_unavailable` | 勤務表から読み取れない待機不可日を手で足す |
 | `roles.max_per_week` / `min_gap_days` | 待機日の散らし方 |

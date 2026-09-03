@@ -80,6 +80,9 @@ DEFAULTS: dict[str, Any] = {
         # ただし連休（翌日が祝日、または対象者全員が不在）のときはこの制限を外す。
         "sun_blocked_next_duties": ["OP", "アーム", ""],
         # 金曜: 翌日(土)に勤務がある人を優先、次点はそれ以外
+        # 祝日は、その日に出勤している人を待機にする（いる場合）。
+        # 祝日は多くが「公」になるため、実際に院内にいる人が担当する。
+        "holiday_prefer_working": True,
         "fri_mode": "next_day_working",
         # 土曜: weekend_pool の在席者（優先順位なし）
         "sat_mode": "weekend_pool",
@@ -101,6 +104,8 @@ DEFAULTS: dict[str, Any] = {
         # 日曜の優先順位の差（tier × sunday_tier_multiplier）より大きくして、
         # 「制限なしの候補がいるなら、優先順位が下でもそちらを使う」順序にしている。
         "sunday_prev_absent": 1300,
+        # 祝日に、その日の出勤者がいるのに出勤していない人を充てる場合のコスト
+        "holiday_not_working": 3000,
         # 日曜に「翌日(月)が手術室勤務（空白・OP・アーム）」の人を充てる場合のコスト。
         # 日曜の優先順位は翌日の勤務内容で決まるため、前日(土)不在より重い最後の手段。
         "sunday_next_operating_room": 2500,

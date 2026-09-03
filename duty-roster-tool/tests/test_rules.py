@@ -106,6 +106,39 @@ def test_long_weekend_lifts_the_monday_condition():
     assert not engine.eligible("担当D", sunday)  # 当日が赤字なら不可
 
 
+def test_holiday_prefers_the_person_actually_working():
+    """祝日は、その日に出勤している人を待機にする。"""
+    import datetime
+
+    from duty_roster.rules import RuleEngine
+    from duty_roster.workbook import DayCells, WorkSchedule
+
+    holiday = datetime.date(2026, 8, 11)  # 山の日
+    cells = {(name, holiday): DayCells([Cell(text="公")]) for name in CFG.member_names}
+    cells[("担当E", holiday)] = DayCells([Cell(text="―/公"), Cell(text="ME")])
+    schedule = WorkSchedule(2026, 8, cells, CFG.member_names)
+    engine = RuleEngine(CFG, schedule, 2026, 8)
+
+    assert engine.is_holiday(holiday)
+    assert engine.holiday_workers(holiday) == ["担当E"]
+    assert engine.tier_label("担当E", holiday) == "祝日（当日出勤）"
+    assert engine.tier_label("担当C", holiday) == "祝日（当日出勤者以外）"
+
+
+def test_holiday_without_any_worker_uses_normal_priority():
+    import datetime
+
+    from duty_roster.rules import RuleEngine
+    from duty_roster.workbook import DayCells, WorkSchedule
+
+    holiday = datetime.date(2026, 8, 11)
+    cells = {(name, holiday): DayCells([Cell(text="公")]) for name in CFG.member_names}
+    schedule = WorkSchedule(2026, 8, cells, CFG.member_names)
+    engine = RuleEngine(CFG, schedule, 2026, 8)
+    assert engine.holiday_workers(holiday) == []
+    assert engine.tier_label("担当C", holiday).startswith("第")
+
+
 def test_manual_unavailable_blocks_the_day():
     import copy
 
