@@ -32,14 +32,21 @@ DEFAULTS: dict[str, Any] = {
         "weekend_pool": [],
         # 日曜は「この中から1人1回ずつ」
         "sunday_once_each": True,
+        # 対象者全員が不在の日（日曜・祝日の一斉「公」など）は、
+        # 不在を理由とする待機不可を解除する。解除しても赤字・黄色セル・
+        # 土日プール・バックアップ役の条件は効いたまま。
+        "all_absent_exception": True,
     },
     # 表記ゆれの読み替え（正規化後の文字列 -> 正規化後の文字列）
     "code_aliases": {"一/公": "―/公"},
     "plan_codes": {
-        # 色に関わらず不在扱い
-        "absent_always": ["有", "夏", "リ", "出", "有/公"],
-        # 赤字のときだけ不在扱い（黒字なら出勤可能）
-        "absent_if_red": ["公"],
+        # 色に関わらず不在扱い（黒字でも不在は待機不可）
+        "absent_always": ["公", "有", "夏", "リ", "出", "有/公"],
+        # 赤字のときだけ不在扱いにしたい記号があればここへ
+        "absent_if_red": [],
+        # 祝日・日曜に限り「赤字でなければ待機可能」とする記号。
+        # 祝日は全員が「公」になるため、これが無いと担当者を選べない。
+        "holiday_relaxed": ["公"],
         # 赤字をどこまで「本人希望の不在」とみなすか。
         #   absence_codes: 不在表記（公・有・夏 など）の赤字だけ
         #   any          : 赤字のセルはすべて
@@ -82,6 +89,8 @@ DEFAULTS: dict[str, Any] = {
         "red_max_g": 110,
         "red_max_b": 110,
     },
+    # 日本の祝日を自動計算する。False にすると holidays に書いた日だけを使う。
+    "holidays_auto": True,
     "holidays": [],
     "excel": {
         "sheet": None,          # None なら先頭シート
@@ -181,6 +190,10 @@ class Config:
         }
 
     @property
+    def holiday_relaxed(self) -> set[str]:
+        return {normalize_code(c) for c in self.raw["plan_codes"].get("holiday_relaxed", [])}
+
+    @property
     def absent_always(self) -> set[str]:
         return {normalize_code(c) for c in self.raw["plan_codes"]["absent_always"]}
 
@@ -202,6 +215,10 @@ class Config:
         return out
 
     # -- セクション --------------------------------------------------------
+    @property
+    def holidays_auto(self) -> bool:
+        return bool(self.raw.get("holidays_auto", True))
+
     @property
     def priority(self) -> dict[str, Any]:
         return self.raw["priority"]

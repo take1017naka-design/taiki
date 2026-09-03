@@ -10,6 +10,7 @@ import datetime as dt
 from dataclasses import dataclass
 
 from .config import Config, normalize_code
+from .holidays_jp import japanese_holidays
 from .workbook import WorkSchedule
 
 MON, TUE, WED, THU, FRI, SAT, SUN = range(7)
@@ -35,12 +36,16 @@ class RuleEngine:
         self.days_in_month = calendar.monthrange(year, month)[1]
         self.days = [dt.date(year, month, d) for d in range(1, self.days_in_month + 1)]
         self.members = cfg.member_names
-        self.holidays = cfg.holidays
+        self.holidays = set(cfg.holidays)
+        if cfg.holidays_auto:
+            self.holidays |= {d for d in japanese_holidays(year) if d.month == month}
         self.absent_always = cfg.absent_always
         self.absent_if_red = cfg.absent_if_red
+        self.holiday_relaxed = cfg.holiday_relaxed
         self.duty_source = cfg.priority.get("duty_source", "both")
         self.weekend_pool = set(cfg.weekend_pool) or set(self.members)
         self._elig_cache: dict[tuple[str, dt.date], Eligibility] = {}
+        self._all_absent_cache: dict[dt.date, bool] = {}
 
     # -- 日付まわり --------------------------------------------------------
     def weekday(self, day: dt.date) -> int:
@@ -52,6 +57,10 @@ class RuleEngine:
     def is_red_day(self, day: dt.date) -> bool:
         """カレンダー上で赤字にする日（日曜・祝日）。"""
         return day.weekday() == SUN or self.is_holiday(day)
+
+    def is_holiday_like(self, day: dt.date) -> bool:
+        """祝日または日曜。全員が「公」になるため不在の判定を緩める。"""
+        return self.is_red_day(day)
 
     # -- セルの読み取り ----------------------------------------------------
     def codes(self, name: str, day: dt.date) -> list[str]:
@@ -85,8 +94,8 @@ class RuleEngine:
     def is_absent(self, name: str, day: dt.date) -> bool:
         """作成手順 3.① の「不在者」判定。
 
-        * 有 / 夏 / リ / 出 / 有/公 … 色に関わらず不在
-        * 公 … 赤字のときだけ不在（黒字なら祝日等の一斉「公」なので待機可能）
+        * 公 / 有 / 夏 / リ / 出 / 有/公 … 色に関わらず不在（黒字でも不在）
+        * ただし祝日・日曜の「公」だけは赤字でなければ不在としない
         * ―/公（日勤/公休）や勤務記号がある日は不在ではない
         """
         codes = self.codes(name, day)
@@ -94,14 +103,44 @@ class RuleEngine:
             return False
         if self.duty_codes(name, day):
             return False
-        if any(c in self.absent_always for c in codes):
+        always, if_red = self.absent_always, self.absent_if_red
+        if self.is_holiday_like(day):
+            # 祝日・日曜の「公」は赤字でなければ待機可能
+            always = always - self.holiday_relaxed
+            if_red = if_red | self.holiday_relaxed
+        if any(c in always for c in codes):
             return True
-        if any(c in self.absent_if_red for c in codes) and self.has_red_text(name, day):
+        if any(c in if_red for c in codes) and self.has_red_text(name, day):
             return True
         return False
 
     def is_working(self, name: str, day: dt.date) -> bool:
         return not self.is_absent(name, day)
+
+    # -- 全員不在の日 ------------------------------------------------------
+    def relevant_members(self, day: dt.date) -> list[str]:
+        """その日に待機を担当しうる人（土日は担当プールに限る）。"""
+        if day.weekday() in (SAT, SUN):
+            return [n for n in self.members if n in self.weekend_pool]
+        return list(self.members)
+
+    def is_all_absent_day(self, day: dt.date) -> bool:
+        """対象者全員が不在の日か（日曜・祝日の一斉「公」など）。
+
+        この日は不在を理由とする待機不可を解除する。誰も選べなくなるため。
+        """
+        if not self.cfg.raw["roles"].get("all_absent_exception", True):
+            return False
+        if day not in self._all_absent_cache:
+            pool = self.relevant_members(day)
+            self._all_absent_cache[day] = bool(pool) and all(
+                self.is_absent(n, day) for n in pool
+            )
+        return self._all_absent_cache[day]
+
+    @property
+    def exception_days(self) -> list[dt.date]:
+        return [d for d in self.days if self.is_all_absent_day(d)]
 
     # -- 待機可否 ----------------------------------------------------------
     def eligibility(self, name: str, day: dt.date) -> Eligibility:
@@ -124,11 +163,14 @@ class RuleEngine:
         if self.is_yellow(name, day):
             return Eligibility(False, "黄色セル（本人希望）")
 
-        # 3.①/3.⑥ 不在者・赤字（本人希望の不在）
-        if self.is_absent(name, day):
-            codes = "/".join(self.codes(name, day)) or "記載なし"
-            red = "・赤字" if self.has_red_text(name, day) else ""
-            return Eligibility(False, f"不在（{codes}{red}）")
+        # 3.⑥ 赤字の不在表記は本人希望の不在（祝日の「公」でも解除しない）
+        if self.has_red_text(name, day):
+            return Eligibility(False, "赤字（本人希望の不在）")
+
+        # 3.① 不在者
+        # 全員が不在の日（日曜・祝日の一斉「公」）だけは、不在を理由にしない。
+        if self.is_absent(name, day) and not self.is_all_absent_day(day):
+            return Eligibility(False, f"不在（{'/'.join(self.codes(name, day)) or '記載なし'}）")
 
         # 3.③ バックアップ役が不在の日は従属者も不可
         anchor = self.cfg.backup_anchor

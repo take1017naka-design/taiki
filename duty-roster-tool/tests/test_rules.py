@@ -22,17 +22,77 @@ def d(day: int) -> dt.date:
     return dt.date(YEAR, MONTH, day)
 
 
-def test_black_kou_is_available_but_red_kou_is_not():
+def test_kou_is_absent_even_in_black_on_a_normal_weekday():
+    """黒字でも不在は待機不可（祝日・日曜を除く）。"""
+    engine = build_engine(
+        {
+            ("担当C", d(4)): [Cell(text="公")],
+            ("担当D", d(4)): [Cell(text="公", red=True)],
+        }
+    )
+    assert not engine.is_holiday_like(d(4))
+    assert engine.is_absent("担当C", d(4))
+    assert not engine.eligible("担当C", d(4))
+    assert not engine.eligible("担当D", d(4))
+
+
+def test_holiday_kou_is_available_unless_red():
+    """祝日（8/11 山の日）の「公」は赤字でなければ待機可能。"""
     engine = build_engine(
         {
             ("担当C", d(11)): [Cell(text="公")],
             ("担当D", d(11)): [Cell(text="公", red=True)],
         }
     )
+    assert engine.is_holiday_like(d(11))
     assert engine.eligible("担当C", d(11))
     assert not engine.eligible("担当D", d(11))
-    assert not engine.is_absent("担当C", d(11))
-    assert engine.is_absent("担当D", d(11))
+
+
+def test_sunday_kou_is_available_unless_red():
+    engine = build_engine(
+        {
+            ("担当C", d(2)): [Cell(text="公")],
+            ("担当D", d(2)): [Cell(text="公", red=True)],
+        }
+    )
+    assert engine.eligible("担当C", d(2))
+    assert not engine.eligible("担当D", d(2))
+
+
+def test_sunday_needs_someone_working_on_monday():
+    engine = build_engine(
+        {
+            ("担当C", d(2)): [Cell(text="公")],
+            ("担当C", d(3)): [Cell(text="公")],       # 翌日(月)が不在
+            ("担当D", d(2)): [Cell(text="公")],
+            ("担当D", d(3)): [Cell(text="ME")],       # 翌日(月)は出勤
+        }
+    )
+    assert not engine.eligible("担当C", d(2))
+    assert engine.eligible("担当D", d(2))
+
+
+def test_all_absent_day_lifts_the_absence_rule():
+    """全員が一斉に「公」の日（日曜・祝日）は、不在を理由にしない。"""
+    cells = {(name, d(4)): [Cell(text="夏")] for name in CFG.member_names}
+    cells[("担当D", d(4))] = [Cell(text="公", red=True)]
+    engine = build_engine(cells)
+
+    assert engine.is_all_absent_day(d(4))
+    assert engine.eligible("担当C", d(4))
+    assert not engine.eligible("担当D", d(4))           # 赤字は解除されない
+    assert not engine.eligible("担当G", d(4))           # バックアップ役が不在
+
+
+def test_all_absent_exception_only_applies_when_everyone_is_absent():
+    cells = {(name, d(4)): [Cell(text="夏")] for name in CFG.member_names}
+    cells[("担当C", d(4))] = [Cell(text="ME")]
+    engine = build_engine(cells)
+
+    assert not engine.is_all_absent_day(d(4))
+    assert engine.eligible("担当C", d(4))
+    assert not engine.eligible("担当E", d(4))
 
 
 def test_absence_codes_block_regardless_of_color():

@@ -77,8 +77,15 @@ def cmd_generate(args) -> int:
     engine = RuleEngine(cfg, schedule, year, month)
     solution = solve(cfg, engine)
 
+    notes = list(schedule.warnings)
+    if engine.exception_days:
+        notes.append(
+            "全員が不在（一斉「公」など）のため、不在による待機不可を解除した日: "
+            + "、".join(f"{d:%m/%d}({WEEKDAY_JP[d.weekday()]})" for d in engine.exception_days)
+        )
+
     output = Path(args.output) if args.output else Path("out") / f"待機表_{year}{month:02d}.xlsx"
-    write_roster(output, cfg, engine, solution, warnings=schedule.warnings)
+    write_roster(output, cfg, engine, solution, warnings=notes)
 
     print(f"\n{year}年{month}月 待機表")
     print("-" * 42)
@@ -101,7 +108,7 @@ def cmd_generate(args) -> int:
     print("連日: " + ("  ".join(runs) if runs else "なし"))
 
     for label, items in (
-        ("読み取りの注意", schedule.warnings),
+        ("読み取りの注意", notes),
         ("メモ", solution.notes),
         ("ルール違反・要確認", solution.violations),
     ):
@@ -125,6 +132,11 @@ def cmd_check(args) -> int:
     print(f"検出した対象者: {', '.join(schedule.names_in_sheet)}")
     for w in schedule.warnings:
         print(f"  ! {w}")
+    if engine.exception_days:
+        print(
+            "  ! 全員不在のため不在条件を解除した日: "
+            + "、".join(f"{d:%m/%d}" for d in engine.exception_days)
+        )
 
     header = "      " + "".join(f"{d.day:>3}" for d in engine.days)
     print("\n待機可否 (○=可 ×=不可)")
