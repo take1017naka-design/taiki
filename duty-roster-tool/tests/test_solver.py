@@ -66,6 +66,29 @@ def test_consecutive_group_never_runs_three_days(august):
     assert runs == []
 
 
+def test_sunday_priority_is_not_traded_away(august):
+    """日曜は、より上位の優先順位の人が空いていればその人が入る。"""
+    engine, solution = august
+    worst = 99
+
+    def rank(name, day):
+        tier = engine.tier(name, day)
+        return worst if tier is None else tier
+
+    for day in (d for d in engine.days if d.weekday() == 6):
+        chosen = solution.assignment[day]
+        chosen_tier = rank(chosen, day)
+        better = [
+            n
+            for n in engine.candidates(day)
+            if rank(n, day) < chosen_tier
+            and not engine.eligibility(n, day).conditional
+            # その人が他の日曜で使われていなければ、そちらが選ばれるべき
+            and n not in {solution.assignment[d] for d in engine.days if d.weekday() == 6}
+        ]
+        assert better == [], f"{day:%m/%d} は {better} の方が優先順位が上"
+
+
 def test_writer_produces_all_sheets(august, tmp_path):
     engine, solution = august
     out = write_roster(tmp_path / "roster.xlsx", CFG, engine, solution)

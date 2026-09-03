@@ -45,6 +45,9 @@ class Solver:
         self.w_inelig = float(w["ineligible"])
         self.w_group_run = float(w["group_run"])
         self.w_fair = float(w["holiday_fairness"])
+        # 日曜は「1人1回ずつ」の総当たりで優先順位を満たす組み合わせを探すルールなので、
+        # 優先順位のコストを重くして、平日側の都合で崩されないようにする。
+        self.sunday_tier_multiplier = float(w.get("sunday_tier_multiplier", 20))
 
         self.group = set(cfg.consecutive_group)
         self.max_run = cfg.consecutive_group_max_run
@@ -62,6 +65,8 @@ class Solver:
                     if tier is not None and tier < len(self.tier_weights)
                     else self.w_fallback
                 )
+                if day.weekday() == SUN:
+                    base *= self.sunday_tier_multiplier
                 # 条件付きで可の候補は追加コストを載せ、最後の手段にする
                 self.tier_cost[(name, day)] = base + elig.penalty
         self.red_days = {d for d in self.days if engine.is_red_day(d) or d.weekday() == SAT}
