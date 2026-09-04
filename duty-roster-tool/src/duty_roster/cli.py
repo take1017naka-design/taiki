@@ -8,7 +8,7 @@ import re
 import sys
 from pathlib import Path
 
-from .config import ConfigError, load_config, normalize_name
+from .config import ConfigError, load_config, normalize_name, parse_day
 from .rules import WEEKDAY_JP, RuleEngine
 from .solver import solve
 from .sample import build_sample
@@ -38,6 +38,13 @@ def build_parser() -> argparse.ArgumentParser:
     gen.add_argument("-s", "--schedule", required=True, help="勤務割当表 Excel")
     gen.add_argument("-c", "--config", default="config/roster.yaml", help="設定ファイル")
     gen.add_argument("-m", "--month", type=parse_month, help="対象年月（例 2026-08）。省略時は表題から推定")
+    gen.add_argument(
+        "--fix",
+        action="append",
+        metavar="日=氏名",
+        help="先に決まっている担当を指定する（例 --fix 5=坂本 --fix 2026-10-12=一戸）。"
+        " ルールに関係なくこのとおり入れ、残りを自動で決める。複数回指定できる",
+    )
     gen.add_argument(
         "-o",
         "--output",
@@ -83,6 +90,31 @@ def resolve_output(given: str | None, cfg, year: int, month: int) -> Path:
     return path.resolve()
 
 
+def parse_fixed(entries: list[str] | None, cfg, year: int, month: int) -> dict[dt.date, str]:
+    """--fix と設定の fixed_assignments をまとめる（--fix が優先）。"""
+    fixed = cfg.fixed_assignments(year, month)
+    for entry in entries or []:
+        if "=" not in entry:
+            raise SystemExit(f"--fix は 日=氏名 の形式で指定してください: {entry}")
+        raw_day, name = (part.strip() for part in entry.split("=", 1))
+        try:
+            day = parse_day(raw_day, year, month)
+        except ValueError as exc:
+            raise SystemExit(f"--fix の日付を解釈できません: {raw_day}（{exc}）") from exc
+        fixed[day] = name
+
+    known = {normalize_name(n): n for n in cfg.member_names}
+    resolved: dict[dt.date, str] = {}
+    for day, name in fixed.items():
+        key = normalize_name(name)
+        if key not in known:
+            raise SystemExit(f"{day:%m/%d} に指定された「{name}」は対象者にいません。")
+        if not (day.year == year and day.month == month):
+            raise SystemExit(f"{day} は対象月（{year}年{month}月）の日付ではありません。")
+        resolved[day] = known[key]
+    return resolved
+
+
 def cmd_generate(args) -> int:
     cfg = load_config(args.config)
     schedule_path = Path(args.schedule)
@@ -90,7 +122,10 @@ def cmd_generate(args) -> int:
 
     schedule = read_schedule(schedule_path, year, month, cfg)
     engine = RuleEngine(cfg, schedule, year, month)
-    solution = solve(cfg, engine)
+    fixed = parse_fixed(getattr(args, "fix", None), cfg, year, month)
+    if fixed:
+        print("先に決めた担当: " + "、".join(f"{d:%m/%d}={n}" for d, n in sorted(fixed.items())))
+    solution = solve(cfg, engine, fixed)
 
     notes = list(schedule.warnings)
     if engine.exception_days:
@@ -100,12 +135,15 @@ def cmd_generate(args) -> int:
         )
 
     output = resolve_output(args.output, cfg, year, month)
-    write_roster(output, cfg, engine, solution, warnings=notes)
+    write_roster(output, cfg, engine, solution, warnings=notes, fixed=fixed)
 
     print(f"\n{year}年{month}月 待機表")
     print("-" * 42)
     for day in engine.days:
         name = solution.assignment[day]
+        if day in fixed:
+            print(f"{day.day:>2}日({WEEKDAY_JP[day.weekday()]}) {name:<8}  【指定】")
+            continue
         mark = "*" if not engine.eligible(name, day) else " "
         print(
             f"{day.day:>2}日({WEEKDAY_JP[day.weekday()]}) {name:<8}{mark}"

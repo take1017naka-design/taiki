@@ -80,13 +80,14 @@ def write_roster(
     engine: RuleEngine,
     solution: Solution,
     warnings: list[str] | None = None,
+    fixed: dict[dt.date, str] | None = None,
 ) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
 
     _sheet_calendar(wb, cfg, engine, solution)
-    _sheet_list(wb, cfg, engine, solution)
+    _sheet_list(wb, cfg, engine, solution, fixed or {})
     _sheet_summary(wb, cfg, engine, solution)
     _sheet_availability(wb, cfg, engine)
     _sheet_notes(wb, cfg, solution, warnings or [])
@@ -214,7 +215,13 @@ def _counts_block(ws, cfg: Config, engine: RuleEngine, solution: Solution) -> No
     total_value.alignment = CENTER
 
 
-def _sheet_list(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Solution) -> None:
+def _sheet_list(
+    wb: Workbook,
+    cfg: Config,
+    engine: RuleEngine,
+    solution: Solution,
+    fixed: dict[dt.date, str],
+) -> None:
     ws = wb.create_sheet("一覧")
     headers = ["日付", "曜日", "待機者", "採用した優先順位", "翌日の勤務", "同日の他候補"]
     for i, h in enumerate(headers, start=1):
@@ -233,7 +240,7 @@ def _sheet_list(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Solutio
             day.strftime("%Y/%m/%d"),
             WEEKDAY_JP[day.weekday()],
             name,
-            engine.tier_label(name, day),
+            "指定（ルール判定の対象外）" if day in fixed else engine.tier_label(name, day),
             engine.next_duty_text(name, day),
             "・".join(others),
         ]

@@ -154,6 +154,52 @@ def test_writer_produces_all_sheets(august, tmp_path):
     assert ws.cell(row=3 + len(engine.members) + 1, column=10).value == engine.days_in_month
 
 
+def test_fixed_assignment_is_honoured_even_if_ineligible(august):
+    """先に決めた担当は、ルールに関係なくそのまま入る。"""
+    import datetime
+
+    engine, _ = august
+    saturday = datetime.date(2026, 8, 1)
+    # 土日の担当対象外の人を土曜に指定する
+    outsider = next(n for n in engine.members if n not in CFG.weekend_pool)
+    assert not engine.eligible(outsider, saturday)
+
+    solution = solve(CFG, engine, {saturday: outsider})
+    assert solution.assignment[saturday] == outsider
+    assert sum(solution.counts.values()) == engine.days_in_month
+    assert any("先に決めた担当" in note for note in solution.notes)
+
+
+def test_fixed_sunday_keeps_one_turn_each(august):
+    import datetime
+
+    engine, _ = august
+    first_sunday = datetime.date(2026, 8, 2)
+    who = CFG.weekend_pool[0]
+
+    solution = solve(CFG, engine, {first_sunday: who})
+    sundays = [d for d in engine.days if d.weekday() == 6]
+    names = [solution.assignment[d] for d in sundays]
+    assert solution.assignment[first_sunday] == who
+    assert len(set(names)) == len(names)   # 日曜は1人1回のまま
+
+
+def test_fixed_assignment_keeps_total_days(august):
+    import datetime
+
+    engine, _ = august
+    fixed = {
+        datetime.date(2026, 8, 5): engine.members[0],
+        datetime.date(2026, 8, 12): engine.members[1],
+        datetime.date(2026, 8, 19): engine.members[2],
+    }
+    solution = solve(CFG, engine, fixed)
+    for day, name in fixed.items():
+        assert solution.assignment[day] == name
+    assert sum(solution.counts.values()) == engine.days_in_month
+    assert set(solution.assignment) == set(engine.days)
+
+
 def test_sheets_are_ready_to_print(august, tmp_path):
     engine, solution = august
     out = write_roster(tmp_path / "print.xlsx", CFG, engine, solution)

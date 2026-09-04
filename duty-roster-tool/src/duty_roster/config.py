@@ -132,6 +132,10 @@ DEFAULTS: dict[str, Any] = {
     # 日本の祝日を自動計算する。False にすると holidays に書いた日だけを使う。
     "holidays_auto": True,
     "holidays": [],
+    # 先に決まっている担当。ルールに関係なくこのとおり入れる。
+    #   fixed_assignments:
+    #     2026-10-05: 坂本
+    "fixed_assignments": {},
     # 勤務表から読み取れない事情を手で足す。氏名 -> 日付（と理由）のリスト。
     #   manual_unavailable:
     #     坂本: ["2026-09-20"]
@@ -304,6 +308,15 @@ class Config:
     def holidays_auto(self) -> bool:
         return bool(self.raw.get("holidays_auto", True))
 
+    def fixed_assignments(self, year: int, month: int) -> dict[dt.date, str]:
+        """先に決まっている担当（対象月のぶんだけ）。"""
+        out: dict[dt.date, str] = {}
+        for raw_day, name in (self.raw.get("fixed_assignments") or {}).items():
+            day = parse_day(raw_day, year, month)
+            if day.year == year and day.month == month:
+                out[day] = str(name).strip()
+        return out
+
     @property
     def manual_unavailable(self) -> dict[str, dict[dt.date, str]]:
         out: dict[str, dict[dt.date, str]] = {}
@@ -394,6 +407,18 @@ def normalize_code(value: Any) -> str:
 def normalize_name(value: Any) -> str:
     """氏名の比較用。空白をすべて除去する（「担当A　太郎」→「担当A太郎」）。"""
     return normalize_code(value).replace(" ", "")
+
+
+def parse_day(value: Any, year: int, month: int) -> dt.date:
+    """日付を解釈する。「5」のような日だけの指定は対象月の日付とみなす。"""
+    if isinstance(value, dt.datetime):
+        return value.date()
+    if isinstance(value, dt.date):
+        return value
+    text = str(value).strip()
+    if text.isdigit():
+        return dt.date(year, month, int(text))
+    return dt.date.fromisoformat(text)
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

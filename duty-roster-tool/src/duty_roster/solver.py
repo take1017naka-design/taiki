@@ -39,12 +39,16 @@ class Solution:
 
 
 class Solver:
-    def __init__(self, cfg: Config, engine: RuleEngine):
+    def __init__(self, cfg: Config, engine: RuleEngine, fixed: dict[dt.date, str] | None = None):
         self.cfg = cfg
         self.engine = engine
         self.days = engine.days
         self.members = engine.members
+        self.fixed = dict(fixed or {})
+        self.open_days = [d for d in self.days if d not in self.fixed]
         self.quota = cfg.quota(engine.days_in_month)
+        self.quota_notes: list[str] = []
+        self.remaining_quota = self._remaining_quota()
 
         w = cfg.weights
         self.tier_weights = [float(x) for x in w["tier"]]
@@ -89,10 +93,39 @@ class Solver:
                 self.tier_cost[(name, day)] = base + elig.penalty
         self.red_days = {d for d in self.days if engine.is_red_day(d) or d.weekday() == SAT}
 
+    def _remaining_quota(self) -> dict[str, int]:
+        """先に決めたぶんを引いた残りの回数。合計が残り日数と合うように調整する。"""
+        remaining = dict(self.quota)
+        for name in self.fixed.values():
+            remaining[name] = remaining.get(name, 0) - 1
+        for name, value in remaining.items():
+            if value < 0:
+                self.quota_notes.append(
+                    f"{name}: 指定された日数が目標 {self.quota.get(name, 0)} 回を超えています"
+                )
+                remaining[name] = 0
+
+        target = len(self.open_days)
+        # 多すぎる場合は目標に対して余裕のある人から減らす
+        while sum(remaining.values()) > target:
+            name = max(remaining, key=lambda n: (remaining[n], n))
+            remaining[name] -= 1
+        # 少なすぎる場合は目標に対して少ない人から増やす
+        while sum(remaining.values()) < target:
+            name = min(
+                remaining,
+                key=lambda n: (remaining[n] + sum(1 for v in self.fixed.values() if v == n)
+                               - self.quota.get(n, 0), n),
+            )
+            remaining[name] += 1
+        return remaining
+
     # -- 評価 --------------------------------------------------------------
     def evaluate(self, assignment: dict[dt.date, str]) -> float:
         cost = 0.0
         for day, name in assignment.items():
+            if day in self.fixed:
+                continue  # 指定された日は評価しない（ルールに関係なく入れる）
             if not self.ok[(name, day)]:
                 cost += self.w_inelig
             cost += self.tier_cost[(name, day)]
@@ -142,10 +175,12 @@ class Solver:
 
     # -- 日曜の組み合わせ --------------------------------------------------
     def sunday_options(self, limit: int) -> list[dict[dt.date, str]]:
-        sundays = [d for d in self.days if d.weekday() == SUN]
+        sundays = [d for d in self.open_days if d.weekday() == SUN]
         if not sundays:
             return [{}]
         pool = self.cfg.weekend_pool or self.members
+        # 指定済みの日曜に入っている人は、1人1回ルールのうえで使用済み扱い
+        already = {n for d, n in self.fixed.items() if d.weekday() == SUN}
         options: list[tuple[float, dict[dt.date, str]]] = []
 
         def dfs(index: int, used: set[str], chosen: dict[dt.date, str], cost: float) -> None:
@@ -167,22 +202,22 @@ class Solver:
                 used.discard(name)
                 del chosen[day]
 
-        dfs(0, set(), {}, 0.0)
+        dfs(0, set(already), {}, 0.0)
         if not options:
             return []
         options.sort(key=lambda x: x[0])
         return [opt for _, opt in options[:limit]]
 
     # -- 構築 --------------------------------------------------------------
-    def construct(self, fixed: dict[dt.date, str], rng: random.Random) -> dict[dt.date, str] | None:
-        remaining = dict(self.quota)
-        for name in fixed.values():
+    def construct(self, sunday_choice: dict[dt.date, str], rng: random.Random) -> dict[dt.date, str] | None:
+        remaining = dict(self.remaining_quota)
+        for name in sunday_choice.values():
             remaining[name] = remaining.get(name, 0) - 1
         if any(v < 0 for v in remaining.values()):
             return None
 
-        assignment = dict(fixed)
-        open_days = [d for d in self.days if d not in assignment]
+        assignment = {**self.fixed, **sunday_choice}
+        open_days = [d for d in self.open_days if d not in assignment]
         # 候補が少ない日から埋める
         open_days.sort(key=lambda d: (sum(1 for n in self.members if self.ok[(n, d)]), d))
 
@@ -249,7 +284,7 @@ class Solver:
     ) -> tuple[dict[dt.date, str], float]:
         best = dict(assignment)
         best_cost = self.evaluate(best)
-        others = [d for d in self.days if d not in sundays]
+        others = [d for d in self.open_days if d not in sundays]
         groups = [g for g in (others, sundays) if len(g) >= 2]
         if not groups:
             return best, best_cost
@@ -270,8 +305,13 @@ class Solver:
     def solve(self) -> Solution:
         search = self.cfg.search
         rng = random.Random(int(search["seed"]))
-        sundays = [d for d in self.days if d.weekday() == SUN]
-        notes: list[str] = []
+        sundays = [d for d in self.open_days if d.weekday() == SUN]
+        notes: list[str] = list(self.quota_notes)
+        if self.fixed:
+            notes.append(
+                "先に決めた担当（ルール判定の対象外）: "
+                + "、".join(f"{d:%m/%d}={n}" for d, n in sorted(self.fixed.items()))
+            )
 
         options = self.sunday_options(int(search["sunday_candidates"]))
         if not options:
@@ -339,7 +379,7 @@ class Solver:
     def collect_conditional_notes(self, assignment: dict[dt.date, str]) -> list[str]:
         """条件付きで可の候補を使った日を書き出す。"""
         out = []
-        for day in self.days:
+        for day in self.open_days:
             elig = self.engine.eligibility(assignment[day], day)
             if elig.conditional:
                 out.append(f"{day:%m/%d} {assignment[day]}: {elig.note}")
@@ -349,7 +389,7 @@ class Solver:
     def collect_violations(self, assignment: dict[dt.date, str]) -> list[str]:
         out: list[str] = []
         engine = self.engine
-        for day in self.days:
+        for day in self.open_days:
             name = assignment[day]
             elig = engine.eligibility(name, day)
             if not elig.ok:
@@ -385,5 +425,7 @@ class Solver:
         return out
 
 
-def solve(cfg: Config, engine: RuleEngine) -> Solution:
-    return Solver(cfg, engine).solve()
+def solve(
+    cfg: Config, engine: RuleEngine, fixed: dict[dt.date, str] | None = None
+) -> Solution:
+    return Solver(cfg, engine, fixed).solve()
