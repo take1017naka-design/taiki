@@ -234,6 +234,8 @@ class RuleEngine:
         * 土日・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない
 
         日曜の追加条件（翌日不在・翌日手術室・前日不在）は待機表と同じ。
+        ただし `backup_roster.always_available` の人は、休み（不在）と
+        本人希望の不可日（赤字・黄色）以外はすべて可とする。
         """
         key = (name, day)
         if key not in self._backup_cache:
@@ -242,7 +244,11 @@ class RuleEngine:
                 weekend and not self.cfg.backup_anchor_rule_on_weekends
             )
             elig = self.base_eligibility(name, day, apply_anchor_rule=apply_anchor)
-            if elig.ok and day.weekday() == SUN:
+            if (
+                elig.ok
+                and day.weekday() == SUN
+                and name not in self.cfg.backup_always_available
+            ):
                 elig = self.sunday_conditions(name, day)
             self._backup_cache[key] = elig
         return self._backup_cache[key]

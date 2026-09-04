@@ -150,6 +150,9 @@ DEFAULTS: dict[str, Any] = {
         "consecutive_report_threshold": 4,
         # 日曜・祝日の予備を年間で均等にする。ここに書いた人は対象外。
         "holiday_fairness_ignore": [],
+        # 予備では、休み（不在）と本人希望の不可日（赤字・黄色）以外はすべて可とする人。
+        # 日曜の追加条件（翌日不在・翌日手術室・前日土曜不在）を適用しない。
+        "always_available": [],
         # 土日は予備に入れない人（祝日と重なる日は下の holiday_consult で扱う）
         "weekend_excluded": [],
         # 祝日に予備へ入れたら「要相談」として確認事項に出す人
@@ -384,6 +387,10 @@ class Config:
         return {str(n) for n in (self.backup.get("consecutive_ignore") or [])}
 
     @property
+    def backup_always_available(self) -> set[str]:
+        return {str(n) for n in (self.backup.get("always_available") or [])}
+
+    @property
     def backup_weekend_excluded(self) -> set[str]:
         return {str(n) for n in (self.backup.get("weekend_excluded") or [])}
 
@@ -615,6 +622,7 @@ def validate(cfg: Config) -> None:
         "backup_roster.holiday_fairness_ignore",
         sorted(cfg.backup_holiday_fairness_ignore),
     )
+    check("backup_roster.always_available", sorted(cfg.backup_always_available))
     check("backup_roster.weekend_excluded", sorted(cfg.backup_weekend_excluded))
     check("backup_roster.holiday_consult", sorted(cfg.backup_holiday_consult))
 

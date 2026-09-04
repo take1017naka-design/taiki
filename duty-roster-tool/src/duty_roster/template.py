@@ -98,6 +98,8 @@ def build_config_text(names: list[str]) -> str:
         "  consecutive_report_threshold: 4",
         "  # 日曜・祝日の予備を年間で均等にする。ここに書いた人は対象外。",
         f"  holiday_fairness_ignore: {_yaml_list([names[ANCHOR_INDEX]] if positional else [])}",
+        "  # 予備では、休みと本人希望の不可日以外はすべて可とする人",
+        f"  always_available: {_yaml_list([names[1]] if positional else [])}",
         "  # 土日は予備に入れない人",
         f"  weekend_excluded: {_yaml_list([names[ANCHOR_INDEX]] if positional else [])}",
         "  # 祝日に予備へ入れたら「要相談」として確認事項に出す人",
