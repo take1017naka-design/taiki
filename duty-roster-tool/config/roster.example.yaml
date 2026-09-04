@@ -150,8 +150,8 @@ backup_roster:
   always_available: [担当B]
   # 土日は予備に入れない人
   weekend_excluded: [担当A]
-  # 金曜は予備に入れない人（土曜は基本的に手術がないため）
-  friday_excluded: [担当A]
+  # 金曜は予備に入れない人。空でよい（入れない日は勤務表を赤字・黄色セルにする）
+  friday_excluded: []
   # 土曜の予備はその日の出勤者から選ぶ
   saturday_requires_working: true
   # 祝日に予備へ入れたら「要相談」として確認事項に出す人
