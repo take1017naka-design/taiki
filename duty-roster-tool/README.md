@@ -97,7 +97,8 @@ python -m duty_roster generate -s data/202608.xlsx -c config/roster.yaml
 
 **手術室業務の判定**
 
-翌日の勤務に `ME` `内視` `OHP` `機` があれば、その勤務で判定します。どれも無ければ
+翌日の勤務に `ME` `内視` `OHP` `機` `災` `業` `労` `研修` `材料`（＝優先順位の段に載っている
+記号）があれば、その勤務で判定します。どれも無ければ
 （空白・`アーム`・`Ｏ`・`OP`・`会議`・`PM`・`カテ`・`ABL` など）手術室勤務とみなします。
 上下段は両方見るので、`機/Ｏ` のように併記されていれば `機` の日（第4優先）です。
 `公` `有` `夏` など休みだけの日は手術室ではなく「翌日が休み」として扱います。
@@ -105,7 +106,7 @@ python -m duty_roster generate -s data/202608.xlsx -c config/roster.yaml
 ```yaml
 priority:
   # 翌日の勤務をこれで判定する。どれも無ければ手術室
-  operating_room_judge_codes: ["ME", "内視", "OHP", "機"]
+  operating_room_judge_codes: ["ME", "内視", "OHP", "機", "災", "業", "労", "研修", "材料"]
   # 手術室に入らない人（翌日が何であれ手術室扱いにしない）
   operating_room_exempt_members: [担当A, 担当B]
 ```
