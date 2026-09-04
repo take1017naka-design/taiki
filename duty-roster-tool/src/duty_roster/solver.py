@@ -301,12 +301,23 @@ class Solver:
                 best[d1], best[d2] = best[d2], best[d1]
         return best, best_cost
 
+    @property
+    def base_notes(self) -> list[str]:
+        """回数配分と「先に決めた担当」のメモ（優先順位のメモは含めない）。"""
+        out = list(self.quota_notes)
+        if self.fixed:
+            out.append(
+                "先に決めた担当（ルール判定の対象外）: "
+                + "、".join(f"{d:%m/%d}={n}" for d, n in sorted(self.fixed.items()))
+            )
+        return out
+
     # -- 実行 --------------------------------------------------------------
     def solve(self) -> Solution:
         search = self.cfg.search
         rng = random.Random(int(search["seed"]))
         sundays = [d for d in self.open_days if d.weekday() == SUN]
-        notes: list[str] = list(self.quota_notes)
+        notes: list[str] = self.base_notes
         if self.fixed:
             notes.append(
                 "先に決めた担当（ルール判定の対象外）: "

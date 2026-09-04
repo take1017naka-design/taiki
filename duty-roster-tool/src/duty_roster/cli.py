@@ -11,6 +11,7 @@ from pathlib import Path
 from .config import ConfigError, load_config, normalize_name, parse_day
 from .rules import WEEKDAY_JP, RuleEngine
 from .backup import solve_backup
+from .joint import solve_joint
 from .history import History
 from .personal import write_personal_rosters
 from .solver import solve
@@ -55,6 +56,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="予備待機の担当を先に指定する（--fix と同じ書き方）",
     )
     gen.add_argument("--no-backup", action="store_true", help="予備待機表を作らない")
+    gen.add_argument(
+        "--no-joint",
+        action="store_true",
+        help="待機と予備を同時に組まず、待機を決めてから予備を決める",
+    )
     gen.add_argument("--no-personal", action="store_true", help="個人別待機表を作らない")
     gen.add_argument(
         "--no-history",
@@ -149,7 +155,15 @@ def cmd_generate(args) -> int:
     fixed = parse_fixed(getattr(args, "fix", None), cfg, year, month)
     if fixed:
         print("先に決めた担当: " + "、".join(f"{d:%m/%d}={n}" for d, n in sorted(fixed.items())))
-    solution = solve(cfg, engine, fixed)
+    make_backup = cfg.backup_enabled and not args.no_backup
+    joint = make_backup and cfg.joint_enabled and not getattr(args, "no_joint", False)
+    prebuilt_backup = None
+    if joint:
+        fixed_backup, past, _, _ = _backup_inputs(args, cfg, year, month)
+        print("待機と予備を同時に組みます（--no-joint で待機→予備の順に戻せます）")
+        solution, prebuilt_backup = solve_joint(cfg, engine, fixed, fixed_backup, past)
+    else:
+        solution = solve(cfg, engine, fixed)
 
     notes = list(schedule.warnings)
     if engine.exception_days:
@@ -198,9 +212,9 @@ def cmd_generate(args) -> int:
 
     violations = list(solution.violations)
     backup_assignment: dict[dt.date, str] = {}
-    if cfg.backup_enabled and not args.no_backup:
+    if make_backup:
         backup_violations, backup_assignment = _make_backup(
-            args, cfg, engine, solution, notes, year, month
+            args, cfg, engine, solution, notes, year, month, prebuilt_backup
         )
         violations += backup_violations
 
@@ -232,8 +246,8 @@ def _backup_availability_view(engine):
     return view
 
 
-def _make_backup(args, cfg, engine, solution, notes, year, month):
-    """予備待機表を作る。戻り値は (要確認事項, 割り当て)。"""
+def _backup_inputs(args, cfg, year, month, announce=True):
+    """予備を組むための入力（先に決めた予備・日曜祝日の実績）を集める。"""
     fixed_backup = parse_fixed(
         getattr(args, "fix_backup", None), cfg, year, month, source=cfg.fixed_backup_assignments
     )
@@ -241,15 +255,23 @@ def _make_backup(args, cfg, engine, solution, notes, year, month):
     use_history = cfg.history_enabled and not args.no_history
     history = History.load(history_path)
     past = history.holiday_backup_totals(exclude_month=(year, month)) if use_history else {}
-    if past:
+    if past and announce:
         print(
             "\nこれまでの日曜・祝日の予備（"
             + "・".join(history.recorded_months())
             + "）: "
             + " ".join(f"{n}{c}" for n, c in sorted(past.items()))
         )
+    return fixed_backup, past, history, use_history
 
-    backup = solve_backup(cfg, engine, solution.assignment, fixed_backup, past)
+
+def _make_backup(args, cfg, engine, solution, notes, year, month, backup=None):
+    """予備待機表を作る。戻り値は (要確認事項, 割り当て)。"""
+    fixed_backup, past, history, use_history = _backup_inputs(
+        args, cfg, year, month, announce=backup is None
+    )
+    if backup is None:
+        backup = solve_backup(cfg, engine, solution.assignment, fixed_backup, past)
 
     print(f"\n{year}年{month}月 予備待機表")
     print("-" * 42)

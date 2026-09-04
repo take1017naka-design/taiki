@@ -89,17 +89,7 @@ class BackupSolver:
         self.dependents = set(cfg.backup_dependents)
         self.force_anchor = bool(conf.get("forced_anchor_for_dependents", True))
 
-        # 待機者ごとの担当日（連続日数の判定に使う）
-        self.primary_days: dict[str, set[dt.date]] = {n: set() for n in self.members}
-        for day, name in primary.items():
-            self.primary_days.setdefault(name, set()).add(day)
-
-        self.forced: dict[dt.date, str] = {}
-        if self.force_anchor and self.anchor:
-            for day in self.days:
-                if primary.get(day) in self.dependents:
-                    self.forced[day] = self.anchor
-        self.forced.update(self.fixed)
+        self.rebind(primary)
 
         self.tier_cost: dict[tuple[str, dt.date], float] = {}
         self.ok: dict[tuple[str, dt.date], bool] = {}
@@ -160,6 +150,25 @@ class BackupSolver:
         # 誰も残らない日は、可否を無視してでも埋める（違反として報告する）
         return [n for n in self.members if n != primary and n not in blocked] or list(self.members)
 
+    # -- 待機表の差し替え --------------------------------------------------
+    def rebind(self, primary: dict[dt.date, str]) -> None:
+        """待機表が変わったときに、待機表に依存する情報だけを組み直す。
+
+        可否や優先順位のコストは（人, 日）だけで決まるので組み直さない。
+        """
+        self.primary = dict(primary)
+        # 待機者ごとの担当日（連続日数の判定に使う）
+        self.primary_days: dict[str, set[dt.date]] = {n: set() for n in self.members}
+        for day, name in self.primary.items():
+            self.primary_days.setdefault(name, set()).add(day)
+
+        self.forced: dict[dt.date, str] = {}
+        if self.force_anchor and self.anchor:
+            for day in self.days:
+                if self.primary.get(day) in self.dependents:
+                    self.forced[day] = self.anchor
+        self.forced.update(self.fixed)
+
     # -- 評価 --------------------------------------------------------------
     def combined_days(self, assignment: dict[dt.date, str]) -> dict[str, list[dt.date]]:
         out = {n: set(self.primary_days.get(n, set())) for n in self.members}
@@ -211,15 +220,6 @@ class BackupSolver:
                     self.w_quota_priority if name in self.quota_priority else self.w_quota
                 )
                 cost += weight * (count - self.target.get(name, 0)) ** 2
-
-        # 日曜の予備も月内で1人1回ずつ（無理なら許容してコストを載せる）
-        if self.sunday_once_each and self.w_sunday_repeat:
-            seen: dict[str, int] = {}
-            for day in self.sundays:
-                name = assignment.get(day)
-                if name:
-                    seen[name] = seen.get(name, 0) + 1
-            cost += self.w_sunday_repeat * sum(c - 1 for c in seen.values() if c > 1)
 
         # 日曜の予備も月内で1人1回ずつ（無理なら許容してコストを載せる）
         if self.sunday_once_each and self.w_sunday_repeat:

@@ -55,7 +55,10 @@ class RuleEngine:
         self.duty_source = cfg.priority.get("duty_source", "both")
         self.weekend_pool = set(cfg.weekend_pool) or set(self.members)
         self.sun_blocked_next_duties = cfg.sun_blocked_next_duties
-        self.operating_room_codes = cfg.operating_room_codes
+        self.operating_room_judge = cfg.operating_room_judge_codes
+        self.operating_room_exempt = cfg.operating_room_exempt_members
+        self.operating_room_exception_tier = cfg.operating_room_exception_tier
+        self.unlisted_code_tier = cfg.unlisted_code_tier
         self.manual_unavailable = cfg.manual_unavailable
         self._elig_cache: dict[tuple[str, dt.date], Eligibility] = {}
         self._all_absent_cache: dict[dt.date, bool] = {}
@@ -155,14 +158,17 @@ class RuleEngine:
     def next_day_is_operating_room(self, name: str, day: dt.date) -> bool:
         """翌日が手術室業務か。
 
-        勤務表では上下段とも空白なら手術室、上下どちらかに「アーム」「OP」が
-        あれば手術室業務として扱う（他の記号と併記されていても手術室）。
-        「公」などの休みは空白ではないので手術室ではない（不在として別に扱う）。
+        翌日の勤務に ME・内視・OHP・機 があれば、その勤務で判定する。
+        どれも無ければ（空白・アーム・Ｏ・会議 など）手術室勤務とみなす。
+        手術室に入らない人（`operating_room_exempt_members`）は常に手術室外。
         """
-        codes = self.codes(name, day + dt.timedelta(days=1))
-        if not codes:
-            return True
-        return any(c in self.operating_room_codes for c in codes)
+        if name in self.operating_room_exempt:
+            return False
+        nxt = day + dt.timedelta(days=1)
+        codes = self.codes(name, nxt)
+        if codes and not self.duty_codes(name, nxt):
+            return False  # 翌日が休み（公・有・夏 など）。手術室ではない
+        return not any(c in self.operating_room_judge for c in codes)
 
     def next_day_last_resort_label(self, name: str, day: dt.date) -> str | None:
         """翌日が優先順位の最後の段のとき、その内容を表す文言。該当なしは None。"""
@@ -172,6 +178,12 @@ class RuleEngine:
         if codes:
             return f"翌日が手術室勤務（{'/'.join(codes)}）"
         return "翌日が空白（手術室勤務）"
+
+    def next_day_is_day_off(self, name: str, day: dt.date) -> bool:
+        """翌日が休み（勤務内容がなく、公・有・夏 などの記号だけ）か。"""
+        nxt = day + dt.timedelta(days=1)
+        codes = self.codes(name, nxt)
+        return bool(codes) and not self.duty_codes(name, nxt)
 
     def works_on(self, name: str, day: dt.date) -> bool:
         """その日に実際の勤務があるか（記号に勤務内容が入っているか）。"""
@@ -387,14 +399,25 @@ class RuleEngine:
             nxt = day + dt.timedelta(days=1)
             return 0 if self.is_working(name, nxt) else 1
         tiers = self.cfg.priority["sun" if wd == SUN else "mon_thu"]
+        last = len(tiers) - 1
+        # 翌日が休みの人は、手術室に入らない人も含めて最後の段
+        if self.next_day_is_day_off(name, day):
+            return last
+        if self.next_day_is_operating_room(name, day):
+            return last
         duties = self.next_day_duties(name, day)
         for index, group in enumerate(tiers):
-            wanted = {normalize_code(c) for c in group}
-            if "" in wanted and not duties:
+            wanted = {normalize_code(c) for c in group if c}
+            if wanted and any(d in wanted for d in duties):
                 return index
-            if duties and any(d in wanted for d in duties):
-                return index
-        return None
+        # どの段にも当てはまらない記号（PM・ABL・カテ など）
+        for duty in duties:
+            if duty in self.unlisted_code_tier:
+                return min(self.unlisted_code_tier[duty], last)
+        if name in self.operating_room_exempt:
+            # 手術室に入らない人の、手術室記号だけの日（Ｏ・アーム・空白 など）
+            return min(self.operating_room_exception_tier, last)
+        return last
 
     def tier_label(self, name: str, day: dt.date) -> str:
         workers = self.holiday_workers(day)

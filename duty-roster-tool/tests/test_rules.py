@@ -275,7 +275,11 @@ def test_priority_tiers_follow_next_day_duty():
 
 
 def test_other_duty_codes_rank_between_naishi_and_ki():
-    """災・業・労・研修・材料 は「内視」と「機」の間の優先順位。"""
+    """災・業・労・研修・材料 は「内視」と「機」の間の優先順位。
+
+    ただし既定では、翌日に ME・内視・OHP・機 が無い日は手術室勤務とみなすため、
+    この5つを `operating_room_judge_codes` に足したときだけ第3優先になる。
+    """
     engine = build_engine(
         {
             ("担当C", d(5)): [Cell(text="内視")],
@@ -284,6 +288,9 @@ def test_other_duty_codes_rank_between_naishi_and_ki():
             ("担当F", d(5)): [Cell(text="機")],
         }
     )
+    engine.operating_room_judge = engine.operating_room_judge | {
+        "災", "業", "労", "研修", "材料"
+    }
     assert engine.tier("担当C", d(4)) == 1
     assert engine.tier("担当D", d(4)) == 2
     assert engine.tier("担当E", d(4)) == 2

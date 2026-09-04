@@ -68,12 +68,12 @@ DEFAULTS: dict[str, Any] = {
             ["OHP", "内視"],
             ["災", "業", "労", "研修", "材料"],
             ["機"],
-            ["OP", "アーム", ""],
+            [],  # 第5優先＝手術室（operating_room_judge_codes で判定する）
         ],
         # 日曜: 翌日(月)の勤務内容
         "sun": [
             ["ME", "OHP", "内視", "機", "災", "業", "労", "研修", "材料"],
-            ["OP", "アーム", ""],
+            [],  # 手術室
         ],
         # 日曜は、翌日(月)がこれらの勤務（手術室）だけの人は待機不可。
         # "" は空白（記載なし＝手術室勤務）を表す。
@@ -81,7 +81,16 @@ DEFAULTS: dict[str, Any] = {
         "sun_blocked_next_duties": ["OP", "アーム", ""],
         # 手術室業務とみなす記号。上下段とも空白なら手術室、
         # 上下どちらかにこれらがあれば（他の記号と併記でも）手術室扱い。
-        "operating_room_codes": ["OP", "アーム"],
+        # 翌日の勤務にこれらがあれば、その勤務で判定する。
+        # どれも無ければ（空白・アーム・Ｏ・会議・PM・ABL など）手術室勤務とみなす。
+        "operating_room_judge_codes": ["ME", "内視", "OHP", "機"],
+        # 手術室に入らない人。翌日が何であれ手術室扱いにしない。
+        "operating_room_exempt_members": [],
+        # 手術室に入らない人の日で、優先順位のどれにも当てはまらないときの段
+        "operating_room_exception_tier": 2,
+        # 優先順位のどれにも当てはまらない記号の段（0 が第1優先）。
+        # カテ・ABL・PM は手術室外なので、単独で出てきたらここで拾う。
+        "unlisted_code_tier": {"PM": 2, "ABL": 2, "カテ": 2, "会議": 2},
         # 金曜: 翌日(土)に勤務がある人を優先、次点はそれ以外
         # 祝日は、その日に出勤している人を待機にする（いる場合）。
         # 祝日は多くが「公」になるため、実際に院内にいる人が担当する。
@@ -230,6 +239,11 @@ DEFAULTS: dict[str, Any] = {
         "restarts": 60,
         "local_search_iterations": 6000,
         "sunday_candidates": 16,
+        # 待機と予備を同時に組む（両方を動かして連日・翌日手術室を減らす）。
+        # false にすると、これまでどおり待機を組んでから予備を組む。
+        "joint": True,
+        # 同時に組むときの探索回数
+        "joint_iterations": 12000,
     },
     "output": {
         # 保存先フォルダ。~ や環境変数も使える。
@@ -522,12 +536,30 @@ class Config:
         }
 
     @property
-    def operating_room_codes(self) -> set[str]:
+    def operating_room_judge_codes(self) -> set[str]:
+        """翌日の勤務をこれで判定する記号。どれも無ければ手術室勤務。"""
         return {
             normalize_code(c)
-            for c in self.raw["priority"].get("operating_room_codes", [])
+            for c in self.raw["priority"].get("operating_room_judge_codes", [])
             if c
         }
+
+    @property
+    def operating_room_exempt_members(self) -> set[str]:
+        """手術室に入らない人（翌日が何であれ手術室扱いにしない）。"""
+        return {
+            normalize_name(n)
+            for n in self.raw["priority"].get("operating_room_exempt_members", [])
+        }
+
+    @property
+    def operating_room_exception_tier(self) -> int:
+        return int(self.raw["priority"].get("operating_room_exception_tier", 2))
+
+    @property
+    def unlisted_code_tier(self) -> dict[str, int]:
+        raw = self.raw["priority"].get("unlisted_code_tier", {}) or {}
+        return {normalize_code(c): int(t) for c, t in raw.items() if c}
 
     @property
     def weights(self) -> dict[str, Any]:
@@ -544,6 +576,14 @@ class Config:
     @property
     def search(self) -> dict[str, Any]:
         return self.raw["search"]
+
+    @property
+    def joint_enabled(self) -> bool:
+        return bool(self.raw["search"].get("joint", True))
+
+    @property
+    def joint_search(self) -> dict[str, Any]:
+        return {"iterations": self.raw["search"].get("joint_iterations", 12000)}
 
     @property
     def output(self) -> dict[str, Any]:
