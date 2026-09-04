@@ -94,12 +94,19 @@ class BackupSolver:
 
         self.tier_cost: dict[tuple[str, dt.date], float] = {}
         self.ok: dict[tuple[str, dt.date], bool] = {}
-        tier_weights = [float(x) for x in cfg.weights["tier"]]
-        fallback = float(cfg.weights["fallback_tier"])
+        # 最後の段（翌日が手術室＝OP・アーム・空白）と該当なしだけを重くする
+        multiplier = float(conf.get("last_resort_multiplier", 40))
+        raw_tiers = [float(x) for x in cfg.weights["tier"]]
+        tier_weights = raw_tiers[:-1] + [raw_tiers[-1] * multiplier]
+        fallback = float(cfg.weights["fallback_tier"]) * multiplier
+        self.sunday_once_each = bool(conf.get("sunday_once_each", True))
+        self.w_sunday_repeat = float(w.get("sunday_repeat", 6000))
+        self.sundays = [d for d in engine.days if d.weekday() == SUN]
         for day in self.days:
             holiday_workers = set(engine.holiday_workers(day))
             for name in self.members:
-                self.ok[(name, day)] = engine.backup_eligible(name, day)
+                elig = engine.backup_eligibility(name, day)
+                self.ok[(name, day)] = elig.ok
                 tier = engine.tier(name, day)
                 cost = (
                     tier_weights[tier]
@@ -108,6 +115,8 @@ class BackupSolver:
                 )
                 if holiday_workers and name not in holiday_workers:
                     cost += float(cfg.weights.get("holiday_not_working", 0))
+                # 前日(土)不在・翌日手術室などの「最後の手段」ぶん
+                cost += elig.penalty
                 self.tier_cost[(name, day)] = cost
 
     # -- 候補 --------------------------------------------------------------
@@ -163,6 +172,24 @@ class BackupSolver:
             if name in self.quota_ignore:
                 continue  # 回数の目標を見ない人（自動確定の日が多いため）
             cost += self.w_quota * (count - self.target.get(name, 0)) ** 2
+
+        # 日曜の予備も月内で1人1回ずつ（無理なら許容してコストを載せる）
+        if self.sunday_once_each and self.w_sunday_repeat:
+            seen: dict[str, int] = {}
+            for day in self.sundays:
+                name = assignment.get(day)
+                if name:
+                    seen[name] = seen.get(name, 0) + 1
+            cost += self.w_sunday_repeat * sum(c - 1 for c in seen.values() if c > 1)
+
+        # 日曜の予備も月内で1人1回ずつ（無理なら許容してコストを載せる）
+        if self.sunday_once_each and self.w_sunday_repeat:
+            seen: dict[str, int] = {}
+            for day in self.sundays:
+                name = assignment.get(day)
+                if name:
+                    seen[name] = seen.get(name, 0) + 1
+            cost += self.w_sunday_repeat * sum(c - 1 for c in seen.values() if c > 1)
 
         # 日曜・祝日の予備を年間で均等に（これまでの実績を含めて評価する）
         if self.w_holiday_fair and self.holiday_pool and self.holiday_days:
@@ -243,6 +270,18 @@ class BackupSolver:
     # -- 検証 --------------------------------------------------------------
     def collect_violations(self, assignment: dict[dt.date, str]) -> list[str]:
         out: list[str] = []
+        if self.sunday_once_each:
+            seen: dict[str, list[dt.date]] = {}
+            for day in self.sundays:
+                seen.setdefault(assignment[day], []).append(day)
+            for name, days in seen.items():
+                if len(days) > 1:
+                    out.append(
+                        f"日曜の予備が重複: {name}（"
+                        + "、".join(f"{d:%m/%d}" for d in days)
+                        + "）"
+                    )
+
         for day in self.days:
             name = assignment[day]
             primary = self.primary.get(day)
@@ -289,6 +328,10 @@ class BackupSolver:
 
     def collect_notes(self, assignment: dict[dt.date, str]) -> list[str]:
         out: list[str] = []
+        for day in self.days:
+            elig = self.engine.backup_eligibility(assignment[day], day)
+            if elig.conditional:
+                out.append(f"{day:%m/%d} {assignment[day]}: {elig.note}")
         if self.forced:
             forced_by_rule = {d: n for d, n in self.forced.items() if d not in self.fixed}
             if forced_by_rule:

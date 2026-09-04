@@ -143,10 +143,15 @@ backup_roster:
     担当B: 3
   weights:
     quota_deviation: 250   # 目標回数からのズレ（2乗あたり）
-    consecutive: 1500      # 待機と予備を合算して連日になる1件あたり
+    consecutive: 2000      # 待機と予備を合算して連日になる1件あたり
     holiday_fairness: 400  # 日曜・祝日の予備の年間の偏り（2乗あたり）
     holiday_consult: 2000  # 祝日に holiday_consult の人を充てる
+    sunday_repeat: 6000    # 日曜の予備に同じ人を月内で2回以上使う
     violation: 1000000     # ハード制約違反
+  # 「第4優先までで組めなければ翌日空白も可」を守るため、最後の段だけ重くする
+  last_resort_multiplier: 40
+  # 日曜の予備も月内で1人1回ずつ（無理なら重いコストで許容）
+  sunday_once_each: true
   search:
     restarts: 12
     iterations: 4000

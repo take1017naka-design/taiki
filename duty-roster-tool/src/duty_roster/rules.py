@@ -231,8 +231,9 @@ class RuleEngine:
         待機表と違うのは次の3点。
 
         * 土日の担当プール制限を適用しない（8名全員が対象）
-        * 日曜の追加条件（1人1回・翌日不在・手術室・前日不在）を適用しない
         * 土日・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない
+
+        日曜の追加条件（翌日不在・翌日手術室・前日不在）は待機表と同じ。
         """
         key = (name, day)
         if key not in self._backup_cache:
@@ -240,9 +241,10 @@ class RuleEngine:
             apply_anchor = not (
                 weekend and not self.cfg.backup_anchor_rule_on_weekends
             )
-            self._backup_cache[key] = self.base_eligibility(
-                name, day, apply_anchor_rule=apply_anchor
-            )
+            elig = self.base_eligibility(name, day, apply_anchor_rule=apply_anchor)
+            if elig.ok and day.weekday() == SUN:
+                elig = self.sunday_conditions(name, day)
+            self._backup_cache[key] = elig
         return self._backup_cache[key]
 
     def backup_eligible(self, name: str, day: dt.date) -> bool:
@@ -260,38 +262,44 @@ class RuleEngine:
             return Eligibility(False, "土日の担当対象外")
 
         # 4. 日曜の条件
-        # ここまで来た人は当日(日)が赤字・黄色ではないので、以下は
-        # 「不可」ではなく「他に組めない場合の候補（△）」として扱う。
         if wd == SUN:
-            prev_day = day - dt.timedelta(days=1)
-            next_day = day + dt.timedelta(days=1)
-            penalty = 0.0
-            notes: list[str] = []
+            return self.sunday_conditions(name, day)
 
-            # 連休（翌日が祝日、または全員不在）なら翌日の条件は問わない
-            if not self.is_long_weekend_start(day):
-                # 翌日(月)が不在の人は対象外（日曜は翌日出勤者が担当する）
-                if self.is_absent(name, next_day):
-                    return Eligibility(False, "翌日(月)が不在")
-                # 翌日(月)が手術室勤務（空白・OP・アーム）だけの人は最後の手段
-                duties = self.next_day_duties(name, day)
-                if not [d for d in duties if d not in self.sun_blocked_next_duties]:
-                    label = "/".join(duties) if duties else "空白"
-                    penalty += float(self.cfg.weights.get("sunday_next_operating_room", 2500))
-                    notes.append(f"翌日(月)が手術室勤務（{label}）")
+        return Eligibility(True)
 
-            # 前日(土)が不在の人も最後の手段
-            if self.is_absent(name, prev_day):
-                penalty += float(self.cfg.weights.get("sunday_prev_absent", 1300))
-                notes.append("前日(土)が不在")
+    def sunday_conditions(self, name: str, day: dt.date) -> Eligibility:
+        """日曜の追加条件。待機・予備の両方で使う。
 
-            if penalty:
-                return Eligibility(
-                    True,
-                    penalty=penalty,
-                    note="・".join(notes) + "（他に組めない場合の候補）",
-                )
+        当日(日)が赤字・黄色でないことは呼び出し側で確認済みの前提。
+        「不可」になるのは翌日(月)が不在の場合だけで、それ以外は
+        「他に組めない場合の候補（△）」として残す。
+        """
+        prev_day = day - dt.timedelta(days=1)
+        next_day = day + dt.timedelta(days=1)
+        penalty = 0.0
+        notes: list[str] = []
 
+        # 連休（翌日が祝日、または全員不在）なら翌日の条件は問わない
+        if not self.is_long_weekend_start(day):
+            # 翌日(月)が不在の人は対象外（日曜は翌日出勤者が担当する）
+            if self.is_absent(name, next_day):
+                return Eligibility(False, "翌日(月)が不在")
+            # 翌日(月)が手術室勤務（空白・OP・アーム）だけの人は最後の手段
+            duties = self.next_day_duties(name, day)
+            if not [d for d in duties if d not in self.sun_blocked_next_duties]:
+                label = "/".join(duties) if duties else "空白"
+                penalty += float(self.cfg.weights.get("sunday_next_operating_room", 2500))
+                notes.append(f"翌日(月)が手術室勤務（{label}）")
+
+        # 前日(土)が不在の人も最後の手段
+        if self.is_absent(name, prev_day):
+            penalty += float(self.cfg.weights.get("sunday_prev_absent", 1300))
+            notes.append("前日(土)が不在")
+
+        if penalty:
+            return Eligibility(
+                True, penalty=penalty, note="・".join(notes) + "（他に組めない場合の候補）"
+            )
         return Eligibility(True)
 
     def candidates(self, day: dt.date) -> list[str]:
