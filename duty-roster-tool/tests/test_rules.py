@@ -306,3 +306,22 @@ def test_friday_prefers_people_working_on_saturday():
     )
     assert engine.tier("担当C", d(7)) == 0
     assert engine.tier("担当D", d(7)) == 1
+
+
+def test_operating_room_is_blank_both_rows_or_arm_anywhere():
+    """上下段とも空白、または上下どちらかに「アーム」「OP」なら手術室業務。"""
+    engine = build_engine(
+        {
+            ("担当A", d(5)): [],
+            ("担当B", d(5)): [Cell(text="Ｏ"), Cell(text="アーム")],
+            ("担当C", d(5)): [Cell(text="―/公"), Cell(text="OP")],
+            ("担当D", d(5)): [Cell(text="ME"), Cell(text="カテ")],
+            ("担当E", d(5)): [Cell(text="公")],
+        }
+    )
+    assert engine.next_day_is_operating_room("担当A", d(4))
+    assert engine.next_day_is_operating_room("担当B", d(4))
+    assert engine.next_day_is_operating_room("担当C", d(4))
+    # 勤務内容がある日、休みの日は手術室ではない
+    assert not engine.next_day_is_operating_room("担当D", d(4))
+    assert not engine.next_day_is_operating_room("担当E", d(4))

@@ -79,6 +79,9 @@ DEFAULTS: dict[str, Any] = {
         # "" は空白（記載なし＝手術室勤務）を表す。
         # ただし連休（翌日が祝日、または対象者全員が不在）のときはこの制限を外す。
         "sun_blocked_next_duties": ["OP", "アーム", ""],
+        # 手術室業務とみなす記号。上下段とも空白なら手術室、
+        # 上下どちらかにこれらがあれば（他の記号と併記でも）手術室扱い。
+        "operating_room_codes": ["OP", "アーム"],
         # 金曜: 翌日(土)に勤務がある人を優先、次点はそれ以外
         # 祝日は、その日に出勤している人を待機にする（いる場合）。
         # 祝日は多くが「公」になるため、実際に院内にいる人が担当する。
@@ -159,6 +162,10 @@ DEFAULTS: dict[str, Any] = {
         "always_available": [],
         # 土日は予備に入れない人（祝日と重なる日は下の holiday_consult で扱う）
         "weekend_excluded": [],
+        # 金曜は予備に入れない人（自動確定の日は除く）
+        "friday_excluded": [],
+        # 土曜の予備はその日の出勤者から選ぶ
+        "saturday_requires_working": True,
         # 祝日に予備へ入れたら「要相談」として確認事項に出す人
         "holiday_consult": [],
         # 待機＋予備を合算した連続日数の上限
@@ -182,6 +189,10 @@ DEFAULTS: dict[str, Any] = {
             "holiday_month_even": 12000,
             "holiday_consult": 2000,  # 祝日に holiday_consult の人を充てる
             "sunday_repeat": 6000,    # 日曜の予備に同じ人を月内で2回以上使う
+            # 日曜に「翌日(月)が手術室勤務」の人を充てる（第2段）
+            "sunday_operating_room": 30000,
+            # 土曜にその日出勤していない人を充てる
+            "saturday_not_working": 20000,
             "violation": 1_000_000,   # ハード制約違反
         },
         # 「第4優先までで組めなければ翌日空白も可」というはしごを守るため、
@@ -231,6 +242,8 @@ DEFAULTS: dict[str, Any] = {
         "backup_filename": "予備待機表_{year}{month:02d}.xlsx",
         "personal_filename": "個人別待機表_{year}{month:02d}.xlsx",
         # 個人別の表で使う文字色（待機＝赤字、予備＝黒字）
+        # 予備待機表で、翌日が手術室業務の担当者の氏名を赤字にする色
+        "backup_operating_room_color": "FFFF0000",
         "personal_duty_color": "FFFF0000",
         "personal_backup_color": "FF000000",
         "weekday_font_color": "FF000000",
@@ -413,6 +426,14 @@ class Config:
         return {str(n) for n in (self.backup.get("always_available") or [])}
 
     @property
+    def backup_friday_excluded(self) -> set[str]:
+        return {str(n) for n in (self.backup.get("friday_excluded") or [])}
+
+    @property
+    def backup_saturday_requires_working(self) -> bool:
+        return bool(self.backup.get("saturday_requires_working", True))
+
+    @property
     def backup_weekend_excluded(self) -> set[str]:
         return {str(n) for n in (self.backup.get("weekend_excluded") or [])}
 
@@ -498,6 +519,14 @@ class Config:
         return {
             normalize_code(c)
             for c in self.raw["priority"].get("sun_blocked_next_duties", [])
+        }
+
+    @property
+    def operating_room_codes(self) -> set[str]:
+        return {
+            normalize_code(c)
+            for c in self.raw["priority"].get("operating_room_codes", [])
+            if c
         }
 
     @property
@@ -647,6 +676,7 @@ def validate(cfg: Config) -> None:
     )
     check("backup_roster.always_available", sorted(cfg.backup_always_available))
     check("backup_roster.weekend_excluded", sorted(cfg.backup_weekend_excluded))
+    check("backup_roster.friday_excluded", sorted(cfg.backup_friday_excluded))
     check("backup_roster.holiday_consult", sorted(cfg.backup_holiday_consult))
 
     table = cfg.raw["quota_by_month_length"]

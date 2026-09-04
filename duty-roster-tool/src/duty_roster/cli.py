@@ -314,6 +314,11 @@ def _make_backup(args, cfg, engine, solution, notes, year, month):
         candidates_fn=lambda day: [
             n for n in engine.members if engine.backup_eligible(n, day)
         ],
+        name_color_fn=lambda day, name: (
+            cfg.output.get("backup_operating_room_color", "FFFF0000")
+            if engine.next_day_is_operating_room(name, day)
+            else None
+        ),
     )
     print(f"\n出力: {output}")
     return backup.violations, backup.assignment

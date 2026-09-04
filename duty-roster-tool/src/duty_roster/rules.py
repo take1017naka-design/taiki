@@ -55,6 +55,7 @@ class RuleEngine:
         self.duty_source = cfg.priority.get("duty_source", "both")
         self.weekend_pool = set(cfg.weekend_pool) or set(self.members)
         self.sun_blocked_next_duties = cfg.sun_blocked_next_duties
+        self.operating_room_codes = cfg.operating_room_codes
         self.manual_unavailable = cfg.manual_unavailable
         self._elig_cache: dict[tuple[str, dt.date], Eligibility] = {}
         self._all_absent_cache: dict[dt.date, bool] = {}
@@ -152,21 +153,24 @@ class RuleEngine:
         return self._all_absent_cache[day]
 
     def next_day_is_operating_room(self, name: str, day: dt.date) -> bool:
-        """翌日の勤務が手術室（空白・OP・アーム）だけか。"""
-        duties = self.next_day_duties(name, day)
-        return not [d for d in duties if d not in self.sun_blocked_next_duties]
+        """翌日が手術室業務か。
+
+        勤務表では上下段とも空白なら手術室、上下どちらかに「アーム」「OP」が
+        あれば手術室業務として扱う（他の記号と併記されていても手術室）。
+        「公」などの休みは空白ではないので手術室ではない（不在として別に扱う）。
+        """
+        codes = self.codes(name, day + dt.timedelta(days=1))
+        if not codes:
+            return True
+        return any(c in self.operating_room_codes for c in codes)
 
     def next_day_last_resort_label(self, name: str, day: dt.date) -> str | None:
         """翌日が優先順位の最後の段のとき、その内容を表す文言。該当なしは None。"""
         if not self.next_day_is_operating_room(name, day):
             return None
-        nxt = day + dt.timedelta(days=1)
-        duties = self.next_day_duties(name, day)
-        if duties:
-            return f"翌日が手術室勤務（{'/'.join(duties)}）"
-        codes = self.codes(name, nxt)
+        codes = self.codes(name, day + dt.timedelta(days=1))
         if codes:
-            return f"翌日が休み（{'/'.join(codes)}）"
+            return f"翌日が手術室勤務（{'/'.join(codes)}）"
         return "翌日が空白（手術室勤務）"
 
     def works_on(self, name: str, day: dt.date) -> bool:
@@ -267,8 +271,8 @@ class RuleEngine:
                 elig = self.request_only_eligibility(name, day)
             else:
                 elig = self.base_eligibility(name, day, apply_anchor_rule=apply_anchor)
-                if elig.ok and day.weekday() == SUN:
-                    elig = self.sunday_conditions(name, day)
+            if elig.ok:
+                elig = self.backup_weekday_conditions(name, day)
             self._backup_cache[key] = elig
         return self._backup_cache[key]
 
@@ -281,6 +285,35 @@ class RuleEngine:
             return Eligibility(False, "黄色セル（本人希望）")
         if self.has_red_text(name, day):
             return Eligibility(False, "赤字（本人希望の不在）")
+        return Eligibility(True)
+
+    def backup_weekday_conditions(self, name: str, day: dt.date) -> Eligibility:
+        """予備の曜日別の条件。
+
+        * 日曜 … 翌日(月)が手術室勤務でない人が第1段。手術室の人は△（第2段）
+        * 土曜 … その日に出勤している人。出勤していない人は△
+        * 月〜金 … ここでは制限しない（優先順位で扱う）
+        """
+        weights = self.cfg.backup.get("weights", {})
+        if day.weekday() == SUN and not self.is_long_weekend_start(day):
+            label = self.next_day_last_resort_label(name, day)
+            if label:
+                return Eligibility(
+                    True,
+                    penalty=float(weights.get("sunday_operating_room", 30000)),
+                    note=f"{label}（他に組めない場合の候補）",
+                )
+        if (
+            day.weekday() == SAT
+            and self.cfg.backup_saturday_requires_working
+            and not self.works_on(name, day)
+        ):
+            codes = "/".join(self.codes(name, day)) or "記載なし"
+            return Eligibility(
+                True,
+                penalty=float(weights.get("saturday_not_working", 20000)),
+                note=f"土曜に出勤していない（{codes}）（他に組めない場合の候補）",
+            )
         return Eligibility(True)
 
     def backup_eligible(self, name: str, day: dt.date) -> bool:
@@ -321,8 +354,8 @@ class RuleEngine:
             if self.is_absent(name, next_day):
                 return Eligibility(False, "翌日(月)が不在")
             # 翌日(月)が手術室勤務（空白・OP・アーム）だけの人は最後の手段
-            duties = self.next_day_duties(name, day)
-            if not [d for d in duties if d not in self.sun_blocked_next_duties]:
+            if self.next_day_is_operating_room(name, day):
+                duties = self.next_day_duties(name, day)
                 label = "/".join(duties) if duties else "空白"
                 penalty += float(self.cfg.weights.get("sunday_next_operating_room", 2500))
                 notes.append(f"翌日(月)が手術室勤務（{label}）")

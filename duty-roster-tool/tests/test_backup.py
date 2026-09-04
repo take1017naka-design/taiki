@@ -101,6 +101,39 @@ def test_backup_workbook_has_the_same_format(rosters, tmp_path):
     assert wb["一覧"]["D1"].value == "待機者"   # 待機者の列が入る
 
 
+def test_next_day_operating_room_names_are_red(rosters, tmp_path):
+    """予備が翌日手術室業務の担当者なら、氏名を赤字にする。"""
+    engine, primary, backup = rosters
+    out = write_roster(
+        tmp_path / "red.xlsx",
+        CFG,
+        engine,
+        backup,
+        sheet_name="予備待機表",
+        title="カテ予備待機表",
+        partner=primary.assignment,
+        name_color_fn=lambda day, name: (
+            "FFFF0000" if engine.next_day_is_operating_room(name, day) else None
+        ),
+    )
+    from openpyxl import load_workbook
+
+    ws = load_workbook(out)["予備待機表"]
+    checked = 0
+    for row in range(4, ws.max_row + 1, 2):
+        for col in range(1, 8):
+            day_value = ws.cell(row=row, column=col).value
+            name = ws.cell(row=row + 1, column=col).value
+            if not isinstance(day_value, int) or not name:
+                continue
+            day = dt.date(YEAR, MONTH, day_value)
+            font = ws.cell(row=row + 1, column=col).font
+            red = bool(font.color and font.color.rgb == "FFFF0000")
+            assert red == engine.next_day_is_operating_room(name, day)
+            checked += 1
+    assert checked == len(engine.days)
+
+
 def test_history_records_and_resets(tmp_path):
     """日曜・祝日の予備の実績を月ごとに記録し、同じ月は置き換える。"""
     from duty_roster.history import History

@@ -87,12 +87,13 @@ def write_roster(
     partner_label: str = "待機者",
     availability_fn=None,
     candidates_fn=None,
+    name_color_fn=None,
 ) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
 
-    _sheet_calendar(wb, cfg, engine, solution, sheet_name, title)
+    _sheet_calendar(wb, cfg, engine, solution, sheet_name, title, name_color_fn)
     _sheet_list(
         wb, cfg, engine, solution, fixed or {}, partner, partner_label, candidates_fn
     )
@@ -111,6 +112,7 @@ def _sheet_calendar(
     solution: Solution,
     sheet_name: str,
     title: str,
+    name_color_fn=None,
 ) -> None:
     ws = wb.active
     ws.title = sheet_name
@@ -155,8 +157,14 @@ def _sheet_calendar(
         date_cell.alignment = Alignment(horizontal="left", vertical="center")
         date_cell.border = Border(left=THIN, right=THIN, top=THIN)
 
-        name_cell = ws.cell(row=row + 1, column=col, value=solution.assignment[day])
-        name_cell.font = Font(size=int(out.get("name_font_size", 18)))
+        name = solution.assignment[day]
+        name_cell = ws.cell(row=row + 1, column=col, value=name)
+        name_color = name_color_fn(day, name) if name_color_fn else None
+        name_cell.font = Font(
+            size=int(out.get("name_font_size", 18)),
+            color=name_color,
+            bold=bool(name_color),
+        )
         name_cell.alignment = CENTER
         name_cell.border = Border(left=THIN, right=THIN, bottom=THIN)
         fill = _day_fill(engine, day, out)
@@ -173,6 +181,10 @@ def _sheet_calendar(
     ws.cell(row=row + 3, column=1, value="※ 日付の色: 平日=黒 / 土曜=青 / 日曜・祝日=赤").font = Font(
         size=9, color="FF808080"
     )
+    if name_color_fn is not None:
+        ws.cell(
+            row=row + 4, column=1, value="※ 氏名が赤字＝翌日が手術室業務の担当者"
+        ).font = Font(size=9, color="FF808080")
 
     _counts_block(ws, cfg, engine, solution)
 

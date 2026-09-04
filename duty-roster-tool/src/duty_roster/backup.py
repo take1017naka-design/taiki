@@ -19,7 +19,7 @@ import random
 from dataclasses import dataclass, field
 
 from .config import Config
-from .rules import SAT, SUN, RuleEngine
+from .rules import FRI, SAT, SUN, WEEKDAY_JP, RuleEngine
 from .solver import Solution, week_index
 
 
@@ -55,6 +55,7 @@ class BackupSolver:
         self.report_threshold = cfg.backup_consecutive_report_threshold
         # 土日は予備に入れない人／祝日に入れたら要相談の人
         self.weekend_excluded = cfg.backup_weekend_excluded
+        self.friday_excluded = cfg.backup_friday_excluded
         self.holiday_consult = cfg.backup_holiday_consult
         self.w_holiday_consult = float(
             cfg.backup.get("weights", {}).get("holiday_consult", 2000)
@@ -115,12 +116,17 @@ class BackupSolver:
             for name in self.members:
                 elig = engine.backup_eligibility(name, day)
                 self.ok[(name, day)] = elig.ok
-                tier = engine.tier(name, day)
-                cost = (
-                    tier_weights[tier]
-                    if tier is not None and tier < len(tier_weights)
-                    else fallback
-                )
+                if day.weekday() in (FRI, SAT, SUN):
+                    # 金曜は優先順位なし。土日は可否側（backup_weekday_conditions）
+                    # で段を分けているので、ここでは順位を付けない。
+                    cost = 0.0
+                else:
+                    tier = engine.tier(name, day)
+                    cost = (
+                        tier_weights[tier]
+                        if tier is not None and tier < len(tier_weights)
+                        else fallback
+                    )
                 if holiday_workers and name not in holiday_workers:
                     cost += float(cfg.weights.get("holiday_not_working", 0))
                 # 前日(土)不在・翌日手術室などの「最後の手段」ぶん
@@ -129,10 +135,14 @@ class BackupSolver:
 
     # -- 候補 --------------------------------------------------------------
     def excluded_today(self, day: dt.date) -> set[str]:
-        """その日、予備の対象から外れる人（土日限定。祝日は要相談として残す）。"""
+        """その日、予備の対象から外れる人（祝日は要相談として残す）。"""
         if self.engine.is_holiday(day):
             return set()
-        return self.weekend_excluded if day.weekday() in (SAT, SUN) else set()
+        if day.weekday() in (SAT, SUN):
+            return self.weekend_excluded
+        if day.weekday() == FRI:
+            return self.friday_excluded
+        return set()
 
     def candidates(self, day: dt.date) -> list[str]:
         if day in self.forced:
@@ -338,8 +348,9 @@ class BackupSolver:
                 out.append(f"{day:%m/%d}: 待機と予備が同じ人（{name}）")
             if name in self.forbidden.get(primary or "", set()):
                 out.append(f"{day:%m/%d}: 待機が{primary}の日に{name}を予備にしています")
-            if name in self.excluded_today(day):
-                out.append(f"{day:%m/%d}: {name}は土日の予備の対象外です")
+            if day not in self.forced and name in self.excluded_today(day):
+                span = "祝日" if self.engine.is_holiday(day) else "土日" if day.weekday() in (SAT, SUN) else "金曜"
+                out.append(f"{day:%m/%d}: {name}は{span}の予備の対象外です")
             if self.engine.is_holiday(day) and name in self.holiday_consult:
                 out.append(
                     f"{day:%m/%d}(祝): 予備が{name}です。祝日のため相談してください"
@@ -395,6 +406,18 @@ class BackupSolver:
                     f"待機が{'・'.join(sorted(self.dependents))}の日は{self.anchor}が予備: "
                     + "、".join(f"{d:%m/%d}" for d in sorted(forced_by_rule))
                 )
+                clash = [
+                    d
+                    for d in sorted(forced_by_rule)
+                    if self.anchor in self.excluded_today(d)
+                ]
+                if clash:
+                    out.append(
+                        f"{self.anchor}は本来この曜日の予備の対象外ですが、"
+                        f"待機が{'・'.join(sorted(self.dependents))}のため優先しました"
+                        "（要相談）: "
+                        + "、".join(f"{d:%m/%d}({WEEKDAY_JP[d.weekday()]})" for d in clash)
+                    )
             if self.fixed:
                 out.append(
                     "先に決めた予備: "
