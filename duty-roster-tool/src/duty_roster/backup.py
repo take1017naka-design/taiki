@@ -74,6 +74,9 @@ class BackupSolver:
         self.w_violation = float(w.get("violation", 1_000_000))
         self.w_quota = float(w.get("quota_deviation", 250))
         self.w_quota_priority = float(w.get("quota_deviation_priority", 40000))
+        self.even_quota = cfg.backup_even_quota
+        self.w_even = float(w.get("even_quota_deviation", 3000))
+        self.w_ignored_extra = float(w.get("ignored_extra_day", 2500))
         self.w_consec = float(w.get("consecutive", 600))
         self.max_run = {n: cfg.backup_max_run(n) for n in self.members}
         self.forbidden = cfg.backup_forbidden_pairs
@@ -170,13 +173,31 @@ class BackupSolver:
                 cost += self.w_holiday_consult
             cost += self.tier_cost[(name, day)]
 
-        for name, count in counts.items():
-            if name in self.quota_ignore:
-                continue  # 回数の目標を見ない人（自動確定の日が多いため）
-            weight = (
-                self.w_quota_priority if name in self.quota_priority else self.w_quota
-            )
-            cost += weight * (count - self.target.get(name, 0)) ** 2
+        # 回数を見ない人には、自動確定以外の日を極力入れない
+        if self.w_ignored_extra and self.quota_ignore:
+            for day, name in assignment.items():
+                if name in self.quota_ignore and day not in self.forced:
+                    cost += self.w_ignored_extra
+
+        pool = [n for n in self.members if n not in self.quota_ignore]
+        if self.even_quota and pool:
+            # quota_ignore を除く全員で均等にする
+            mean = sum(counts.get(n, 0) for n in pool) / len(pool)
+            for name in pool:
+                weight = (
+                    self.w_quota_priority
+                    if name in self.quota_priority
+                    else self.w_even
+                )
+                cost += weight * (counts.get(name, 0) - mean) ** 2
+        else:
+            for name, count in counts.items():
+                if name in self.quota_ignore:
+                    continue
+                weight = (
+                    self.w_quota_priority if name in self.quota_priority else self.w_quota
+                )
+                cost += weight * (count - self.target.get(name, 0)) ** 2
 
         # 日曜の予備も月内で1人1回ずつ（無理なら許容してコストを載せる）
         if self.sunday_once_each and self.w_sunday_repeat:
@@ -288,12 +309,14 @@ class BackupSolver:
                     )
 
         counts = self.counts_of(assignment)
-        for name in sorted(self.quota_priority):
-            target = self.target.get(name, 0)
-            if counts.get(name, 0) != target:
-                out.append(
-                    f"{name}: 予備が {counts.get(name, 0)} 回で目標 {target} 回に届いていません"
-                )
+        if not self.even_quota:
+            for name in sorted(self.quota_priority):
+                target = self.target.get(name, 0)
+                if counts.get(name, 0) != target:
+                    out.append(
+                        f"{name}: 予備が {counts.get(name, 0)} 回で"
+                        f"目標 {target} 回に届いていません"
+                    )
 
         for day in self.days:
             name = assignment[day]

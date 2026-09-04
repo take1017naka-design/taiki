@@ -234,8 +234,9 @@ class RuleEngine:
         * 土日・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない
 
         日曜の追加条件（翌日不在・翌日手術室・前日不在）は待機表と同じ。
-        ただし `backup_roster.always_available` の人は、休み（不在）と
-        本人希望の不可日（赤字・黄色）以外はすべて可とする。
+        ただし `backup_roster.always_available` の人は、本人希望の不可日
+        （赤字・黄色セル）と手動指定以外はすべて可とする。不在（公・有・夏 など）
+        も日曜の追加条件も適用しない。
         """
         key = (name, day)
         if key not in self._backup_cache:
@@ -243,15 +244,26 @@ class RuleEngine:
             apply_anchor = not (
                 weekend and not self.cfg.backup_anchor_rule_on_weekends
             )
-            elig = self.base_eligibility(name, day, apply_anchor_rule=apply_anchor)
-            if (
-                elig.ok
-                and day.weekday() == SUN
-                and name not in self.cfg.backup_always_available
-            ):
-                elig = self.sunday_conditions(name, day)
+            if name in self.cfg.backup_always_available:
+                # 本人希望（赤字・黄色）と手動指定だけで判定する
+                elig = self.request_only_eligibility(name, day)
+            else:
+                elig = self.base_eligibility(name, day, apply_anchor_rule=apply_anchor)
+                if elig.ok and day.weekday() == SUN:
+                    elig = self.sunday_conditions(name, day)
             self._backup_cache[key] = elig
         return self._backup_cache[key]
+
+    def request_only_eligibility(self, name: str, day: dt.date) -> Eligibility:
+        """本人希望（赤字・黄色セル）と手動指定だけで可否を決める。"""
+        manual = self.manual_unavailable.get(name, {})
+        if day in manual:
+            return Eligibility(False, f"手動で待機不可に指定（{manual[day]}）")
+        if self.is_yellow(name, day):
+            return Eligibility(False, "黄色セル（本人希望）")
+        if self.has_red_text(name, day):
+            return Eligibility(False, "赤字（本人希望の不在）")
+        return Eligibility(True)
 
     def backup_eligible(self, name: str, day: dt.date) -> bool:
         return self.backup_eligibility(name, day).ok

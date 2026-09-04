@@ -122,8 +122,10 @@ backup_roster:
   anchor_rule_on_weekends: false
   # 予備の回数は目標を見ない人（自動確定の日が多いバックアップ役）
   quota_ignore: [担当A]
+  # 予備の回数は待機表の目標ではなく、quota_ignore を除く全員で均等にする
+  even_quota: true
   # 予備の回数を優先する人（優先順位のはしごより回数を上に置く）
-  quota_priority: [担当B]
+  quota_priority: []
   # 予備の連続日数を見ない人（自動確定の日が多く、避けようがないため）
   # 連続日数を見ない人（自動確定の日が多く避けようがないため）。
   # 上限では止めないが、下の日数以上になったら確認事項に出す。
@@ -131,8 +133,8 @@ backup_roster:
   consecutive_report_threshold: 4
   # 日曜・祝日の予備を年間で均等にする。ここに書いた人は対象外。
   holiday_fairness_ignore: [担当A]
-  # 予備では、休み（不在）と本人希望の不可日（赤字・黄色）以外はすべて可とする人。
-  # 日曜の追加条件（翌日不在・翌日手術室・前日土曜不在）を適用しない。
+  # 予備では、本人希望の不可日（赤字・黄色セル）以外はすべて可とする人。
+  # 不在（公・有・夏 など）も日曜の追加条件も適用しない。
   always_available: [担当B]
   # 土日は予備に入れない人
   weekend_excluded: [担当A]
@@ -149,7 +151,9 @@ backup_roster:
   weights:
     quota_deviation: 250   # 目標回数からのズレ（2乗あたり）
     quota_deviation_priority: 40000  # quota_priority の人のズレ（2乗あたり）
-    consecutive: 2000      # 待機と予備を合算して連日になる1件あたり
+    even_quota_deviation: 3000       # 均等配分のときの平均からのズレ（2乗あたり）
+    ignored_extra_day: 2500          # 回数を見ない人に自動確定以外の日を充てる
+    consecutive: 4000      # 待機と予備を合算して連日になる1件あたり
     holiday_fairness: 400  # 日曜・祝日の予備の年間の偏り（2乗あたり）
     holiday_consult: 2000  # 祝日に holiday_consult の人を充てる
     sunday_repeat: 6000    # 日曜の予備に同じ人を月内で2回以上使う

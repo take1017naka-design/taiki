@@ -146,14 +146,16 @@ DEFAULTS: dict[str, Any] = {
         "quota_ignore": [],
         # 回数の目標を優先する人。優先順位のはしごより回数を上に置く。
         "quota_priority": [],
+        # 予備の回数は待機表の目標ではなく、quota_ignore を除く全員で均等にする
+        "even_quota": True,
         # 連続日数を見ない人（自動確定の日が多く、連続を避けようがないため）。
         # 上限では止めないが、consecutive_report_threshold 日以上になったら報告する。
         "consecutive_ignore": [],
         "consecutive_report_threshold": 4,
         # 日曜・祝日の予備を年間で均等にする。ここに書いた人は対象外。
         "holiday_fairness_ignore": [],
-        # 予備では、休み（不在）と本人希望の不可日（赤字・黄色）以外はすべて可とする人。
-        # 日曜の追加条件（翌日不在・翌日手術室・前日土曜不在）を適用しない。
+        # 予備では、本人希望の不可日（赤字・黄色セル）以外はすべて可とする人。
+        # 不在（公・有・夏 など）も日曜の追加条件も適用しない。
         "always_available": [],
         # 土日は予備に入れない人（祝日と重なる日は下の holiday_consult で扱う）
         "weekend_excluded": [],
@@ -164,12 +166,16 @@ DEFAULTS: dict[str, Any] = {
         "max_run_exceptions": {},
         "weights": {
             "quota_deviation": 250,    # 目標回数からのズレ（2乗あたり）
+            # even_quota のときの、平均からのズレ（2乗あたり）
+            "even_quota_deviation": 3000,
+            # 回数を見ない人（バックアップ役）に、自動確定以外の日を充てる1日あたり。
+            # 何もしないと余った日が集まってしまうため。
+            "ignored_extra_day": 2500,
             # quota_priority の人のズレ（2乗あたり）。最後の段のコストより重くして、
             # 翌日が手術室の日でも回数を合わせにいく。
             "quota_deviation_priority": 40000,
-            # 合算して連日になる1件あたり。待機表と同じ順序になるように、
-            # 前日(土)不在の△(1300)より重く、翌日手術室の△(2500)より軽くする。
-            "consecutive": 2000,
+            # 合算して連日になる1件あたり。均等配分と釣り合う重さにしてある。
+            "consecutive": 4000,
             "holiday_fairness": 400,  # 日曜・祝日の予備の年間の偏り（2乗あたり）
             "holiday_consult": 2000,  # 祝日に holiday_consult の人を充てる
             "sunday_repeat": 6000,    # 日曜の予備に同じ人を月内で2回以上使う
@@ -390,6 +396,10 @@ class Config:
     @property
     def backup_consecutive_ignore(self) -> set[str]:
         return {str(n) for n in (self.backup.get("consecutive_ignore") or [])}
+
+    @property
+    def backup_even_quota(self) -> bool:
+        return bool(self.backup.get("even_quota", True))
 
     @property
     def backup_quota_priority(self) -> set[str]:
