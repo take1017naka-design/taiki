@@ -12,6 +12,7 @@ from .config import ConfigError, load_config, normalize_name, parse_day
 from .rules import WEEKDAY_JP, RuleEngine
 from .backup import solve_backup
 from .history import History
+from .personal import write_personal_rosters
 from .solver import solve
 from .sample import build_sample
 from .template import build_config_text
@@ -54,6 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="予備待機の担当を先に指定する（--fix と同じ書き方）",
     )
     gen.add_argument("--no-backup", action="store_true", help="予備待機表を作らない")
+    gen.add_argument("--no-personal", action="store_true", help="個人別待機表を作らない")
     gen.add_argument(
         "--no-history",
         action="store_true",
@@ -195,13 +197,26 @@ def cmd_generate(args) -> int:
     print(f"\n出力: {output}")
 
     violations = list(solution.violations)
+    backup_assignment: dict[dt.date, str] = {}
     if cfg.backup_enabled and not args.no_backup:
-        violations += _make_backup(args, cfg, engine, solution, notes, year, month)
+        backup_violations, backup_assignment = _make_backup(
+            args, cfg, engine, solution, notes, year, month
+        )
+        violations += backup_violations
+
+    if not args.no_personal:
+        personal = cfg.personal_output_path(year, month)
+        if args.output:
+            given = Path(args.output).expanduser()
+            directory = given if (given.is_dir() or not given.suffix) else given.parent
+            personal = (directory / personal.name).resolve()
+        write_personal_rosters(personal, cfg, engine, solution.assignment, backup_assignment)
+        print(f"個人別待機表: {personal}")
     return 1 if violations else 0
 
 
-def _make_backup(args, cfg, engine, solution, notes, year, month) -> list[str]:
-    """予備待機表を作る。戻り値は要確認事項。"""
+def _make_backup(args, cfg, engine, solution, notes, year, month):
+    """予備待機表を作る。戻り値は (要確認事項, 割り当て)。"""
     fixed_backup = parse_fixed(
         getattr(args, "fix_backup", None), cfg, year, month, source=cfg.fixed_backup_assignments
     )
@@ -284,7 +299,7 @@ def _make_backup(args, cfg, engine, solution, notes, year, month) -> list[str]:
         ],
     )
     print(f"\n出力: {output}")
-    return backup.violations
+    return backup.violations, backup.assignment
 
 
 def cmd_check(args) -> int:

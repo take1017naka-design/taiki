@@ -183,6 +183,10 @@ output:
   directory: "~/Downloads/待機表"
   filename: "待機表_{year}{month:02d}.xlsx"          # {year} {month} が使える
   backup_filename: "予備待機表_{year}{month:02d}.xlsx"
+  personal_filename: "個人別待機表_{year}{month:02d}.xlsx"
+  # 個人別の表の文字色（待機＝赤字、予備＝黒字）
+  personal_duty_color: "FFFF0000"
+  personal_backup_color: "FF000000"
   # 印刷設定（そのまま印刷できるようにしてある）
   paper_size: 9          # 9 = A4
   paper_landscape: true  # 横向き

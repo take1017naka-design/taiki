@@ -202,6 +202,10 @@ DEFAULTS: dict[str, Any] = {
         # ファイル名。{year} と {month} が使える。
         "filename": "待機表_{year}{month:02d}.xlsx",
         "backup_filename": "予備待機表_{year}{month:02d}.xlsx",
+        "personal_filename": "個人別待機表_{year}{month:02d}.xlsx",
+        # 個人別の表で使う文字色（待機＝赤字、予備＝黒字）
+        "personal_duty_color": "FFFF0000",
+        "personal_backup_color": "FF000000",
         "weekday_font_color": "FF000000",
         "saturday_font_color": "FF0070C0",
         "sunday_font_color": "FFFF0000",
@@ -484,11 +488,21 @@ class Config:
         filename = str(out.get("filename") or "待機表_{year}{month:02d}.xlsx")
         return (Path(directory).expanduser() / filename.format(year=year, month=month)).resolve()
 
-    def backup_output_path(self, year: int, month: int) -> Path:
+    def _named_output(self, key: str, default: str, year: int, month: int) -> Path:
         out = self.raw["output"]
         directory = os.path.expandvars(str(out.get("directory") or "out"))
-        filename = str(out.get("backup_filename") or "予備待機表_{year}{month:02d}.xlsx")
+        filename = str(out.get(key) or default)
         return (Path(directory).expanduser() / filename.format(year=year, month=month)).resolve()
+
+    def backup_output_path(self, year: int, month: int) -> Path:
+        return self._named_output(
+            "backup_filename", "予備待機表_{year}{month:02d}.xlsx", year, month
+        )
+
+    def personal_output_path(self, year: int, month: int) -> Path:
+        return self._named_output(
+            "personal_filename", "個人別待機表_{year}{month:02d}.xlsx", year, month
+        )
 
 
 class ConfigError(Exception):
