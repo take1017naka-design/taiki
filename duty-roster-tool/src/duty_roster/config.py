@@ -128,6 +128,9 @@ DEFAULTS: dict[str, Any] = {
         # 優先順位を満たす組み合わせを探すルールなので、平日側の都合で
         # 崩されないようにする。
         "sunday_tier_multiplier": 20,
+        # 月〜木の最後の段（翌日が手術室）を重くする倍率。
+        # 上の段に候補がいる限りそちらを使う（連日・間隔よりも優先して避ける）。
+        "last_resort_multiplier": 40,
         # ハード制約違反（本来ありえない）に付ける巨大コスト
         "ineligible": 1_000_000,
         "group_run": 1_000_000,
@@ -269,6 +272,8 @@ DEFAULTS: dict[str, Any] = {
         "personal_duty_color": "FFFF0000",
         # 個人別の表で、本人の担当不可の日（勤務表が赤字・黄色セル）を塗る色
         "personal_unavailable_fill": "FFFFF2CC",
+        # 個人別の表で、翌日が手術室業務の担当日（待機・予備）を塗る色
+        "personal_operating_room_fill": "FFC6EFCE",
         "personal_backup_color": "FF000000",
         "weekday_font_color": "FF000000",
         "saturday_font_color": "FF0070C0",

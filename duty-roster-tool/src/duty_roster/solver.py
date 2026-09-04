@@ -18,7 +18,7 @@ import random
 from dataclasses import dataclass, field
 
 from .config import Config
-from .rules import SAT, SUN, RuleEngine
+from .rules import SAT, SUN, THU, RuleEngine
 
 
 # 2000-01-02 は日曜。日曜始まりの週番号を出すための基準日。
@@ -60,6 +60,10 @@ class Solver:
         # 日曜は「1人1回ずつ」の総当たりで優先順位を満たす組み合わせを探すルールなので、
         # 優先順位のコストを重くして、平日側の都合で崩されないようにする。
         self.sunday_tier_multiplier = float(w.get("sunday_tier_multiplier", 20))
+        # 月〜木の最後の段（翌日が手術室）を重くする倍率。
+        # 上の段に候補がいる限りそちらを使い、いなければ使って確認事項に出す。
+        self.w_last_resort = float(w.get("last_resort_multiplier", 40))
+        self.last_tier = len(self.cfg.priority["mon_thu"]) - 1
 
         self.w_holiday_not_working = float(w.get("holiday_not_working", 0))
         self.w_short_gap = float(w.get("short_gap", 0))
@@ -87,11 +91,19 @@ class Solver:
                 )
                 if day.weekday() == SUN:
                     base *= self.sunday_tier_multiplier
+                elif day.weekday() <= THU and self._is_last_resort(tier):
+                    # 月〜木の最後の段（翌日が手術室・休み）は「他に組めない場合」だけ。
+                    # 連日・間隔より重くして、上の段の候補がいる限り使わないようにする。
+                    base *= self.w_last_resort
                 if holiday_workers and name not in holiday_workers:
                     base += self.w_holiday_not_working
                 # 条件付きで可の候補は追加コストを載せ、最後の手段にする
                 self.tier_cost[(name, day)] = base + elig.penalty
         self.red_days = {d for d in self.days if engine.is_red_day(d) or d.weekday() == SAT}
+
+    def _is_last_resort(self, tier: int | None) -> bool:
+        """月〜木で「最後の段」に当たるか（優先順位のどれにも当てはまらない場合も含む）。"""
+        return tier is None or tier >= self.last_tier
 
     def _remaining_quota(self) -> dict[str, int]:
         """先に決めたぶんを引いた残りの回数。合計が残り日数と合うように調整する。"""
@@ -388,12 +400,18 @@ class Solver:
         return out
 
     def collect_conditional_notes(self, assignment: dict[dt.date, str]) -> list[str]:
-        """条件付きで可の候補を使った日を書き出す。"""
+        """条件付きで可の候補・最後の段を使った日を書き出す。"""
         out = []
         for day in self.open_days:
-            elig = self.engine.eligibility(assignment[day], day)
+            name = assignment[day]
+            elig = self.engine.eligibility(name, day)
             if elig.conditional:
-                out.append(f"{day:%m/%d} {assignment[day]}: {elig.note}")
+                out.append(f"{day:%m/%d} {name}: {elig.note}")
+            elif day.weekday() <= THU and day.weekday() != SUN:
+                # 月〜木で第4優先までに候補がいなかった日
+                label = self.engine.next_day_last_resort_label(name, day)
+                if label:
+                    out.append(f"{day:%m/%d} {name}: {label}（他に組めない場合の候補）")
         return out
 
     # -- 検証 --------------------------------------------------------------

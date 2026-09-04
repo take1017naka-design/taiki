@@ -3,7 +3,7 @@ import datetime as dt
 from duty_roster.config import load_config
 from duty_roster.rules import RuleEngine
 from duty_roster.sample import build_sample
-from duty_roster.solver import solve
+from duty_roster.solver import Solver, solve
 from duty_roster.workbook import read_schedule
 from duty_roster.writer import write_roster
 
@@ -225,3 +225,30 @@ def test_sheets_are_ready_to_print(august, tmp_path):
 def test_short_month_also_solves(february):
     engine, solution = february
     assert solution.counts == CFG.quota(28)
+
+
+def test_last_resort_tier_is_avoided_when_someone_better_is_free(tmp_path):
+    """月〜木は、上の段に候補がいる限り最後の段（翌日が手術室）を使わない。"""
+    import datetime as dt
+
+    from duty_roster.rules import RuleEngine
+    from duty_roster.workbook import Cell, DayCells, WorkSchedule
+
+    year, month = 2026, 8
+    day, nxt = dt.date(year, month, 4), dt.date(year, month, 5)
+    names = CFG.member_names
+    cells = {}
+    for index, name in enumerate(names):
+        # 全員その日は勤務可。翌日は1人だけ手術室（空白）、残りは ME。
+        cells[(name, day)] = DayCells([Cell(text="ME")])
+        cells[(name, nxt)] = DayCells([] if index == 0 else [Cell(text="ME")])
+    schedule = WorkSchedule(
+        year=year, month=month, cells=cells, names_in_sheet=list(names)
+    )
+    engine = RuleEngine(CFG, schedule, year, month)
+    solver = Solver(CFG, engine)
+    # 翌日が手術室の人のコストは、連日・間隔のどれよりも重い
+    last_resort = solver.tier_cost[(names[0], day)]
+    normal = solver.tier_cost[(names[1], day)]
+    assert last_resort > normal + CFG.weights["consecutive"]
+    assert last_resort > normal + CFG.weights["short_gap"]

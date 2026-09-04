@@ -110,3 +110,27 @@ def test_unavailable_days_are_filled_yellow(personal):
             if engine.is_personally_unavailable(name, day)
         }
         assert yellow == expected, name
+
+
+def test_operating_room_days_are_filled_green(personal):
+    """翌日が手術室業務の担当日（待機・予備）は、セルを緑で塗る。"""
+    engine, primary, backup, wb = personal
+    fill_color = CFG.output["personal_operating_room_fill"]
+    for name in engine.members:
+        ws = wb[name]
+        green = set()
+        for row in range(4, ws.max_row + 1, 2):
+            for col in range(1, 8):
+                value = ws.cell(row=row, column=col).value
+                if not isinstance(value, int):
+                    continue
+                cell_fill = ws.cell(row=row, column=col).fill
+                if cell_fill.start_color and cell_fill.start_color.rgb == fill_color:
+                    green.add(value)
+        expected = {
+            day.day
+            for day in engine.days
+            if (primary.assignment.get(day) == name or backup.assignment.get(day) == name)
+            and engine.next_day_is_operating_room(name, day)
+        }
+        assert green == expected, name

@@ -229,6 +229,8 @@ output:
   personal_backup_color: "FF000000"
   # 個人別の表で、本人の担当不可の日（勤務表が赤字・黄色セル）を塗る色
   personal_unavailable_fill: "FFFFF2CC"
+  # 個人別の表で、翌日が手術室業務の担当日（待機・予備）を塗る色
+  personal_operating_room_fill: "FFC6EFCE"
   # 印刷設定（そのまま印刷できるようにしてある）
   paper_size: 9          # 9 = A4
   paper_landscape: true  # 横向き
