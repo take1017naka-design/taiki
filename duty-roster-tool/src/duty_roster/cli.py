@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .config import ConfigError, load_config, normalize_name, parse_day
 from .rules import WEEKDAY_JP, RuleEngine
+from .backup import solve_backup
 from .solver import solve
 from .sample import build_sample
 from .template import build_config_text
@@ -45,6 +46,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="先に決まっている担当を指定する（例 --fix 5=坂本 --fix 2026-10-12=一戸）。"
         " ルールに関係なくこのとおり入れ、残りを自動で決める。複数回指定できる",
     )
+    gen.add_argument(
+        "--fix-backup",
+        action="append",
+        metavar="日=氏名",
+        help="予備待機の担当を先に指定する（--fix と同じ書き方）",
+    )
+    gen.add_argument("--no-backup", action="store_true", help="予備待機表を作らない")
     gen.add_argument(
         "-o",
         "--output",
@@ -90,9 +98,11 @@ def resolve_output(given: str | None, cfg, year: int, month: int) -> Path:
     return path.resolve()
 
 
-def parse_fixed(entries: list[str] | None, cfg, year: int, month: int) -> dict[dt.date, str]:
-    """--fix と設定の fixed_assignments をまとめる（--fix が優先）。"""
-    fixed = cfg.fixed_assignments(year, month)
+def parse_fixed(
+    entries: list[str] | None, cfg, year: int, month: int, source=None
+) -> dict[dt.date, str]:
+    """--fix と設定の指定をまとめる（--fix が優先）。"""
+    fixed = (source or cfg.fixed_assignments)(year, month)
     for entry in entries or []:
         if "=" not in entry:
             raise SystemExit(f"--fix は 日=氏名 の形式で指定してください: {entry}")
@@ -171,7 +181,66 @@ def cmd_generate(args) -> int:
                 print(f"  - {item}")
 
     print(f"\n出力: {output}")
-    return 1 if solution.violations else 0
+
+    violations = list(solution.violations)
+    if cfg.backup_enabled and not args.no_backup:
+        violations += _make_backup(args, cfg, engine, solution, notes, year, month)
+    return 1 if violations else 0
+
+
+def _make_backup(args, cfg, engine, solution, notes, year, month) -> list[str]:
+    """予備待機表を作る。戻り値は要確認事項。"""
+    fixed_backup = parse_fixed(
+        getattr(args, "fix_backup", None), cfg, year, month, source=cfg.fixed_backup_assignments
+    )
+    backup = solve_backup(cfg, engine, solution.assignment, fixed_backup)
+
+    print(f"\n{year}年{month}月 予備待機表")
+    print("-" * 42)
+    for day in engine.days:
+        name = backup.assignment[day]
+        tag = "【指定】" if day in fixed_backup else (
+            "【自動：待機が" + solution.assignment[day] + "のため】"
+            if day in backup.forced
+            else engine.tier_label(name, day)
+        )
+        print(
+            f"{day.day:>2}日({WEEKDAY_JP[day.weekday()]}) 待機={solution.assignment[day]:<6}"
+            f" 予備={name:<6} {tag}"
+        )
+    print("-" * 42)
+    quota = cfg.quota(engine.days_in_month)
+    print("予備回数: " + "  ".join(f"{n}{backup.counts[n]}/{quota.get(n, 0)}" for n in engine.members))
+
+    for label, items in (("メモ", backup.notes), ("ルール違反・要確認", backup.violations)):
+        if items:
+            print(f"\n[予備 {label}]")
+            for item in items:
+                print(f"  - {item}")
+
+    output = cfg.backup_output_path(year, month)
+    if args.output:
+        given = Path(args.output).expanduser()
+        directory = given if (given.is_dir() or not given.suffix) else given.parent
+        output = (directory / cfg.backup_output_path(year, month).name).resolve()
+    write_roster(
+        output,
+        cfg,
+        engine,
+        backup,
+        warnings=notes,
+        fixed=fixed_backup,
+        sheet_name="予備待機表",
+        title="カテ予備待機表",
+        partner=solution.assignment,
+        partner_label="待機者",
+        availability_fn=engine.backup_eligibility,
+        candidates_fn=lambda day: [
+            n for n in engine.members if engine.backup_eligible(n, day)
+        ],
+    )
+    print(f"\n出力: {output}")
+    return backup.violations
 
 
 def cmd_check(args) -> int:

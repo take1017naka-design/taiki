@@ -112,6 +112,27 @@ holidays_auto: true
 holidays: []       # 院内の特別休など、追加したい日があればここに
 #  - 2026-12-30
 
+# 予備待機表（待機表と同じ形式で、同じ日の「もう1人」を決める）
+backup_roster:
+  enabled: true
+  # 待機が backup_dependents（担当G・担当H）の日は、必ず backup_anchor（担当A）が予備
+  forced_anchor_for_dependents: true
+  # 待機がこの人の日は、予備にこの人たちを入れない
+  forbidden_pairs:
+    担当C: [担当G]
+  # 待機＋予備を合算した連続日数の上限
+  max_run_default: 2
+  max_run_exceptions:
+    担当A: 3
+    担当B: 3
+  weights:
+    quota_deviation: 250   # 目標回数からのズレ（2乗あたり）
+    consecutive: 1500      # 待機と予備を合算して連日になる1件あたり
+    violation: 1000000     # ハード制約違反
+  search:
+    restarts: 12
+    iterations: 4000
+
 # 先に決まっている担当（ルールに関係なくこのとおり入れる）。
 # 毎月変わるものは --fix で渡すほうが手軽。
 fixed_assignments: {}
@@ -136,7 +157,8 @@ excel:
 output:
   # 既定はダウンロードフォルダの中の「待機表」フォルダ（無ければ自動で作る）
   directory: "~/Downloads/待機表"
-  filename: "待機表_{year}{month:02d}.xlsx"   # {year} {month} が使える
+  filename: "待機表_{year}{month:02d}.xlsx"          # {year} {month} が使える
+  backup_filename: "予備待機表_{year}{month:02d}.xlsx"
   # 印刷設定（そのまま印刷できるようにしてある）
   paper_size: 9          # 9 = A4
   paper_landscape: true  # 横向き

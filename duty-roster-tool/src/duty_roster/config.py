@@ -132,6 +132,23 @@ DEFAULTS: dict[str, Any] = {
     # 日本の祝日を自動計算する。False にすると holidays に書いた日だけを使う。
     "holidays_auto": True,
     "holidays": [],
+    # 予備待機表
+    "backup_roster": {
+        "enabled": True,
+        # 待機が backup_dependents の日は、必ず backup_anchor が予備に入る
+        "forced_anchor_for_dependents": True,
+        # 待機がこの人の日は、予備にこの人たちを入れない（待機者 -> 予備不可の一覧）
+        "forbidden_pairs": {},
+        # 待機＋予備を合算した連続日数の上限
+        "max_run_default": 2,
+        "max_run_exceptions": {},
+        "weights": {
+            "quota_deviation": 250,   # 目標回数からのズレ（2乗あたり）
+            "consecutive": 1500,      # 合算して連日になる1件あたり
+            "violation": 1_000_000,   # ハード制約違反
+        },
+        "search": {"restarts": 12, "iterations": 4000},
+    },
     # 先に決まっている担当。ルールに関係なくこのとおり入れる。
     #   fixed_assignments:
     #     2026-10-05: 坂本
@@ -165,6 +182,7 @@ DEFAULTS: dict[str, Any] = {
         "directory": "~/Downloads/待機表",
         # ファイル名。{year} と {month} が使える。
         "filename": "待機表_{year}{month:02d}.xlsx",
+        "backup_filename": "予備待機表_{year}{month:02d}.xlsx",
         "weekday_font_color": "FF000000",
         "saturday_font_color": "FF0070C0",
         "sunday_font_color": "FFFF0000",
@@ -308,6 +326,34 @@ class Config:
     def holidays_auto(self) -> bool:
         return bool(self.raw.get("holidays_auto", True))
 
+    # -- 予備待機表 --------------------------------------------------------
+    @property
+    def backup(self) -> dict[str, Any]:
+        return self.raw["backup_roster"]
+
+    @property
+    def backup_enabled(self) -> bool:
+        return bool(self.backup.get("enabled", True))
+
+    @property
+    def backup_forbidden_pairs(self) -> dict[str, set[str]]:
+        return {
+            str(k): {str(v) for v in (values or [])}
+            for k, values in (self.backup.get("forbidden_pairs") or {}).items()
+        }
+
+    def backup_max_run(self, name: str) -> int:
+        exceptions = self.backup.get("max_run_exceptions") or {}
+        return int(exceptions.get(name, self.backup.get("max_run_default", 2)))
+
+    def fixed_backup_assignments(self, year: int, month: int) -> dict[dt.date, str]:
+        out: dict[dt.date, str] = {}
+        for raw_day, name in (self.backup.get("fixed_assignments") or {}).items():
+            day = parse_day(raw_day, year, month)
+            if day.year == year and day.month == month:
+                out[day] = str(name).strip()
+        return out
+
     def fixed_assignments(self, year: int, month: int) -> dict[dt.date, str]:
         """先に決まっている担当（対象月のぶんだけ）。"""
         out: dict[dt.date, str] = {}
@@ -373,6 +419,12 @@ class Config:
         out = self.raw["output"]
         directory = os.path.expandvars(str(out.get("directory") or "out"))
         filename = str(out.get("filename") or "待機表_{year}{month:02d}.xlsx")
+        return (Path(directory).expanduser() / filename.format(year=year, month=month)).resolve()
+
+    def backup_output_path(self, year: int, month: int) -> Path:
+        out = self.raw["output"]
+        directory = os.path.expandvars(str(out.get("directory") or "out"))
+        filename = str(out.get("backup_filename") or "予備待機表_{year}{month:02d}.xlsx")
         return (Path(directory).expanduser() / filename.format(year=year, month=month)).resolve()
 
 
@@ -465,6 +517,11 @@ def validate(cfg: Config) -> None:
     check("roles.consecutive_group", cfg.consecutive_group)
     check("roles.weekend_pool", cfg.weekend_pool)
     check("manual_unavailable", list(cfg.manual_unavailable))
+    pairs = cfg.backup_forbidden_pairs
+    check("backup_roster.forbidden_pairs", list(pairs))
+    for primary, blocked in pairs.items():
+        check(f"backup_roster.forbidden_pairs[{primary}]", sorted(blocked))
+    check("backup_roster.max_run_exceptions", list(cfg.backup.get("max_run_exceptions") or {}))
 
     table = cfg.raw["quota_by_month_length"]
     if not table:

@@ -19,6 +19,10 @@ DEFAULT_QUOTA_BY_INDEX = {
 ANCHOR_INDEX = 0
 DEPENDENT_INDEXES = [6, 7]
 WEEKEND_POOL_INDEXES = [1, 2, 3, 4, 5]
+# 予備待機: 待機が3人目の日は、依存①を予備にしない
+BACKUP_FORBIDDEN = {2: [6]}
+# 待機＋予備を合算した連続日数の上限を緩める人（1人目・2人目は3日まで）
+BACKUP_LONG_RUN_INDEXES = [0, 1]
 
 
 def _yaml_list(names: list[str]) -> str:
@@ -57,6 +61,15 @@ def build_config_text(names: list[str]) -> str:
     weekend = [names[i] for i in WEEKEND_POOL_INDEXES] if positional else []
     group = ([names[ANCHOR_INDEX]] + dependents) if positional else []
 
+    if positional:
+        forbidden = {
+            names[primary]: [names[i] for i in blocked]
+            for primary, blocked in BACKUP_FORBIDDEN.items()
+        }
+        long_run = {names[i]: 3 for i in BACKUP_LONG_RUN_INDEXES}
+    else:
+        forbidden, long_run = {}, {}
+
     lines += [
         "roles:",
         "  # この人が不在の日は backup_dependents も待機不可（バックアップに入れないため）",
@@ -69,6 +82,26 @@ def build_config_text(names: list[str]) -> str:
         f"  weekend_pool: {_yaml_list(weekend)}" + ("" if positional else "  # TODO"),
         "  # 日曜は上記5名から1人1回ずつ",
         "  sunday_once_each: true",
+        "",
+        "# 予備待機表",
+        "backup_roster:",
+        "  enabled: true",
+        "  # 待機が backup_dependents の日は、必ず backup_anchor が予備に入る",
+        "  forced_anchor_for_dependents: true",
+        "  # 待機がこの人の日は、予備にこの人たちを入れない",
+        "  forbidden_pairs:"
+        + ("" if forbidden else " {}"),
+    ]
+    for primary, blocked in forbidden.items():
+        lines.append(f"    {primary}: {_yaml_list(blocked)}")
+    lines += [
+        "  # 待機＋予備を合算した連続日数の上限（既定2日）",
+        "  max_run_default: 2",
+        "  max_run_exceptions:" + ("" if long_run else " {}"),
+    ]
+    for name, value in long_run.items():
+        lines.append(f"    {name}: {value}")
+    lines += [
         "",
         "# 待機表の保存先（無ければ自動で作る）",
         "output:",

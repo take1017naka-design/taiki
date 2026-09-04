@@ -81,27 +81,42 @@ def write_roster(
     solution: Solution,
     warnings: list[str] | None = None,
     fixed: dict[dt.date, str] | None = None,
+    sheet_name: str = "待機表",
+    title: str = "カテ待機表",
+    partner: dict[dt.date, str] | None = None,
+    partner_label: str = "待機者",
+    availability_fn=None,
+    candidates_fn=None,
 ) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
 
-    _sheet_calendar(wb, cfg, engine, solution)
-    _sheet_list(wb, cfg, engine, solution, fixed or {})
+    _sheet_calendar(wb, cfg, engine, solution, sheet_name, title)
+    _sheet_list(
+        wb, cfg, engine, solution, fixed or {}, partner, partner_label, candidates_fn
+    )
     _sheet_summary(wb, cfg, engine, solution)
-    _sheet_availability(wb, cfg, engine)
+    _sheet_availability(wb, cfg, engine, availability_fn)
     _sheet_notes(wb, cfg, solution, warnings or [])
 
     wb.save(path)
     return path
 
 
-def _sheet_calendar(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Solution) -> None:
+def _sheet_calendar(
+    wb: Workbook,
+    cfg: Config,
+    engine: RuleEngine,
+    solution: Solution,
+    sheet_name: str,
+    title: str,
+) -> None:
     ws = wb.active
-    ws.title = "待機表"
+    ws.title = sheet_name
     out = cfg.output
 
-    ws.cell(row=1, column=1, value=f"{engine.year}年{engine.month}月　カテ待機表").font = Font(
+    ws.cell(row=1, column=1, value=f"{engine.year}年{engine.month}月　{title}").font = Font(
         size=int(out.get("title_font_size", 18)), bold=True
     )
     ws.row_dimensions[1].height = int(out.get("title_font_size", 18)) * 1.6
@@ -221,21 +236,29 @@ def _sheet_list(
     engine: RuleEngine,
     solution: Solution,
     fixed: dict[dt.date, str],
+    partner: dict[dt.date, str] | None = None,
+    partner_label: str = "待機者",
+    candidates_fn=None,
 ) -> None:
+    candidates_fn = candidates_fn or engine.candidates
     ws = wb.create_sheet("一覧")
-    headers = ["日付", "曜日", "待機者", "採用した優先順位", "翌日の勤務", "同日の他候補"]
+    headers = ["日付", "曜日", "担当", "採用した優先順位", "翌日の勤務", "同日の他候補"]
+    if partner:
+        headers.insert(3, partner_label)
     for i, h in enumerate(headers, start=1):
         c = ws.cell(row=1, column=i, value=h)
         c.font = Font(bold=True)
         c.fill = PatternFill("solid", fgColor="FFF2F2F2")
         c.border = BOX
     widths = [12, 6, 12, 20, 22, 40]
+    if partner:
+        widths.insert(3, 12)
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
     for r, day in enumerate(engine.days, start=2):
         name = solution.assignment[day]
-        others = [n for n in engine.candidates(day) if n != name]
+        others = [n for n in candidates_fn(day) if n != name]
         values = [
             day.strftime("%Y/%m/%d"),
             WEEKDAY_JP[day.weekday()],
@@ -244,6 +267,8 @@ def _sheet_list(
             engine.next_duty_text(name, day),
             "・".join(others),
         ]
+        if partner:
+            values.insert(3, partner.get(day, ""))
         for i, v in enumerate(values, start=1):
             cell = ws.cell(row=r, column=i, value=v)
             cell.border = BOX
@@ -292,8 +317,11 @@ def _sheet_summary(wb: Workbook, cfg: Config, engine: RuleEngine, solution: Solu
     setup_print(ws, cfg, fit_height=1, repeat_rows="1:1")
 
 
-def _sheet_availability(wb: Workbook, cfg: Config, engine: RuleEngine) -> None:
-    """読み取り結果の目視確認用。○=待機可 / 記号=不可理由。"""
+def _sheet_availability(
+    wb: Workbook, cfg: Config, engine: RuleEngine, availability_fn=None
+) -> None:
+    """読み取り結果の目視確認用。○=可 / △=条件付き / ×=不可。"""
+    availability_fn = availability_fn or engine.eligibility
     ws = wb.create_sheet("可否一覧")
     ws.cell(row=1, column=1, value="待機可否（○=可、△=条件付きで可、×=不可・下に理由）").font = Font(bold=True)
     ws.cell(row=2, column=1, value="氏名").font = Font(bold=True)
@@ -307,8 +335,12 @@ def _sheet_availability(wb: Workbook, cfg: Config, engine: RuleEngine) -> None:
     for r, name in enumerate(engine.members, start=3):
         ws.cell(row=r, column=1, value=name).font = Font(bold=True)
         for i, day in enumerate(engine.days, start=2):
-            elig = engine.eligibility(name, day)
-            cell = ws.cell(row=r, column=i, value=engine.availability_mark(name, day))
+            elig = availability_fn(name, day)
+            cell = ws.cell(
+                row=r,
+                column=i,
+                value="×" if not elig.ok else ("△" if elig.conditional else "○"),
+            )
             cell.alignment = CENTER
             if not elig.ok:
                 cell.font = Font(color="FF999999")
@@ -324,7 +356,7 @@ def _sheet_availability(wb: Workbook, cfg: Config, engine: RuleEngine) -> None:
     r = start + 1
     for name in engine.members:
         for day in engine.days:
-            elig = engine.eligibility(name, day)
+            elig = availability_fn(name, day)
             if elig.ok and not elig.conditional:
                 continue
             ws.cell(row=r, column=1, value=f"{day:%m/%d}")

@@ -58,6 +58,7 @@ class RuleEngine:
         self.manual_unavailable = cfg.manual_unavailable
         self._elig_cache: dict[tuple[str, dt.date], Eligibility] = {}
         self._all_absent_cache: dict[dt.date, bool] = {}
+        self._backup_cache: dict[tuple[str, dt.date], Eligibility] = {}
 
     # -- 日付まわり --------------------------------------------------------
     def weekday(self, day: dt.date) -> int:
@@ -190,17 +191,12 @@ class RuleEngine:
             return "×"
         return "△" if elig.conditional else "○"
 
-    def _eligibility(self, name: str, day: dt.date) -> Eligibility:
-        wd = day.weekday()
-
+    def base_eligibility(self, name: str, day: dt.date) -> Eligibility:
+        """待機・予備に共通する可否（本人の事情と勤務表から決まるぶん）。"""
         # 0. 設定での手動指定（勤務表から読み取れない事情）
         manual = self.manual_unavailable.get(name, {})
         if day in manual:
             return Eligibility(False, f"手動で待機不可に指定（{manual[day]}）")
-
-        # 4. 土日は担当プールが限定される
-        if wd in (SAT, SUN) and name not in self.weekend_pool:
-            return Eligibility(False, "土日の担当対象外")
 
         # 3.② 黄色セル（本人希望）
         if self.is_yellow(name, day):
@@ -219,6 +215,29 @@ class RuleEngine:
         anchor = self.cfg.backup_anchor
         if anchor and name in self.cfg.backup_dependents and self.is_absent(anchor, day):
             return Eligibility(False, f"{anchor}が不在（バックアップ不可）")
+
+        return Eligibility(True)
+
+    def backup_eligibility(self, name: str, day: dt.date) -> Eligibility:
+        """予備待機の可否。土日の担当プール制限と日曜の条件は適用しない。"""
+        key = (name, day)
+        if key not in self._backup_cache:
+            self._backup_cache[key] = self.base_eligibility(name, day)
+        return self._backup_cache[key]
+
+    def backup_eligible(self, name: str, day: dt.date) -> bool:
+        return self.backup_eligibility(name, day).ok
+
+    def _eligibility(self, name: str, day: dt.date) -> Eligibility:
+        wd = day.weekday()
+
+        base = self.base_eligibility(name, day)
+        if not base.ok:
+            return base
+
+        # 4. 土日は担当プールが限定される
+        if wd in (SAT, SUN) and name not in self.weekend_pool:
+            return Eligibility(False, "土日の担当対象外")
 
         # 4. 日曜の条件
         # ここまで来た人は当日(日)が赤字・黄色ではないので、以下は
