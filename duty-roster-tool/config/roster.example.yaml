@@ -117,8 +117,9 @@ backup_roster:
   enabled: true
   # 待機が backup_dependents（担当G・担当H）の日は、必ず backup_anchor（担当A）が予備
   forced_anchor_for_dependents: true
-  # 日曜・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない
-  anchor_rule_on_holidays: false
+  # 土日・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない
+  # （予備は土日祝も8名全員が対象）
+  anchor_rule_on_weekends: false
   # 予備の回数は目標を見ない人（自動確定の日が多いバックアップ役）
   quota_ignore: [担当A]
   # 予備の連続日数を見ない人（自動確定の日が多く、避けようがないため）

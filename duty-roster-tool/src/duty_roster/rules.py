@@ -232,12 +232,13 @@ class RuleEngine:
 
         * 土日の担当プール制限を適用しない（8名全員が対象）
         * 日曜の追加条件（1人1回・翌日不在・手術室・前日不在）を適用しない
-        * 日曜・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない
+        * 土日・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない
         """
         key = (name, day)
         if key not in self._backup_cache:
+            weekend = day.weekday() in (SAT, SUN) or self.is_holiday(day)
             apply_anchor = not (
-                self.is_red_day(day) and not self.cfg.backup_anchor_rule_on_holidays
+                weekend and not self.cfg.backup_anchor_rule_on_weekends
             )
             self._backup_cache[key] = self.base_eligibility(
                 name, day, apply_anchor_rule=apply_anchor

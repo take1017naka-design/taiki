@@ -139,9 +139,9 @@ DEFAULTS: dict[str, Any] = {
         "forced_anchor_for_dependents": True,
         # 待機がこの人の日は、予備にこの人たちを入れない（待機者 -> 予備不可の一覧）
         "forbidden_pairs": {},
-        # 日曜・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない。
-        # 予備は日曜・祝日も8名全員が対象。
-        "anchor_rule_on_holidays": False,
+        # 土日・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない。
+        # 予備は土日祝も8名全員が対象。
+        "anchor_rule_on_weekends": False,
         # 回数の目標を見ない人（バックアップ役は自動確定の日が多いため）
         "quota_ignore": [],
         # 連続日数を見ない人（自動確定の日が多く、連続を避けようがないため）。
@@ -385,8 +385,12 @@ class Config:
         return path
 
     @property
-    def backup_anchor_rule_on_holidays(self) -> bool:
-        return bool(self.backup.get("anchor_rule_on_holidays", False))
+    def backup_anchor_rule_on_weekends(self) -> bool:
+        """土日祝も「バックアップ役の不在」を予備の可否に反映するか。"""
+        raw = self.backup
+        if "anchor_rule_on_weekends" in raw:
+            return bool(raw["anchor_rule_on_weekends"])
+        return bool(raw.get("anchor_rule_on_holidays", False))
 
     def backup_max_run(self, name: str) -> int:
         exceptions = self.backup.get("max_run_exceptions") or {}
