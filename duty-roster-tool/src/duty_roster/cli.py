@@ -352,6 +352,7 @@ def _make_backup(args, cfg, engine, solution, notes, year, month, backup=None):
         candidates_fn=lambda day: [
             n for n in engine.members if engine.backup_eligible(n, day)
         ],
+        counts_targets=False,   # 予備の日数は待機の目標と別なので、すべて黒字
         name_color_fn=lambda day, name: (
             cfg.output.get("backup_operating_room_color", "FFFF0000")
             if engine.next_day_is_operating_room(name, day)

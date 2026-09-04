@@ -203,3 +203,21 @@ def test_holiday_assignment_of_consult_member_is_reported():
     assignment = {d: consult for d in engine.days}
     messages = solver.collect_violations(assignment)
     assert any(f"{holiday:%m/%d}" in m and "相談" in m for m in messages)
+
+
+def test_prefer_more_takes_the_larger_share(rosters):
+    """均等割りが割り切れないとき、指定した人は多いほうの日数にする。"""
+    engine = rosters[0]
+    cfg = load_config("config/roster.example.yaml")
+    target = cfg.member_names[1]
+    cfg.raw["backup_roster"]["even_quota_prefer_more"] = [target]
+    primary = solve(cfg, engine)
+    backup = solve_backup(cfg, engine, primary.assignment)
+
+    pool = [n for n in engine.members if n not in cfg.backup_quota_ignore]
+    counts = {n: backup.counts.get(n, 0) for n in pool}
+    total = sum(counts.values())
+    if total % len(pool):
+        assert counts[target] == -(-total // len(pool))
+    else:
+        assert counts[target] == total // len(pool)

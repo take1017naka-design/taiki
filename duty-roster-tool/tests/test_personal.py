@@ -87,3 +87,26 @@ def test_sheets_print_on_one_a4_landscape_page(personal):
         assert ws.page_setup.orientation == "landscape"
         assert ws.page_setup.fitToWidth == 1
         assert ws.print_options.horizontalCentered
+
+
+def test_unavailable_days_are_filled_yellow(personal):
+    """本人希望の担当不可（赤字・黄色セル）の日は、セルを黄色で塗る。"""
+    engine, _, _, wb = personal
+    fill_color = CFG.output["personal_unavailable_fill"]
+    for name in engine.members:
+        ws = wb[name]
+        yellow = set()
+        for row in range(4, ws.max_row + 1, 2):
+            for col in range(1, 8):
+                value = ws.cell(row=row, column=col).value
+                if not isinstance(value, int):
+                    continue
+                cell_fill = ws.cell(row=row, column=col).fill
+                if cell_fill.start_color and cell_fill.start_color.rgb == fill_color:
+                    yellow.add(value)
+        expected = {
+            day.day
+            for day in engine.days
+            if engine.is_personally_unavailable(name, day)
+        }
+        assert yellow == expected, name

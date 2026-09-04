@@ -163,6 +163,9 @@ DEFAULTS: dict[str, Any] = {
         "quota_priority": [],
         # 予備の回数は待機表の目標ではなく、quota_ignore を除く全員で均等にする
         "even_quota": True,
+        # 均等割りが割り切れないとき、多いほうの日数を担当する人。
+        # （7人で24日なら3日と4日に分かれる。ここに書いた人は4日にする）
+        "even_quota_prefer_more": [],
         # 連続日数を見ない人（自動確定の日が多く、連続を避けようがないため）。
         # 上限では止めないが、consecutive_report_threshold 日以上になったら報告する。
         "consecutive_ignore": [],
@@ -187,9 +190,11 @@ DEFAULTS: dict[str, Any] = {
             "quota_deviation": 250,    # 目標回数からのズレ（2乗あたり）
             # even_quota のときの、平均からのズレ（2乗あたり）
             "even_quota_deviation": 3000,
+            # 均等割りで多いほうの日数にしたい人が、少ないほうになった場合
+            "even_quota_prefer_more": 9000,
             # 回数を見ない人（バックアップ役）に、自動確定以外の日を充てる1日あたり。
             # 何もしないと余った日が集まってしまうため。
-            "ignored_extra_day": 2500,
+            "ignored_extra_day": 6000,
             # quota_priority の人のズレ（2乗あたり）。最後の段のコストより重くして、
             # 翌日が手術室の日でも回数を合わせにいく。
             "quota_deviation_priority": 40000,
@@ -262,6 +267,8 @@ DEFAULTS: dict[str, Any] = {
         # 予備待機表で、翌日が手術室業務の担当者の氏名を赤字にする色
         "backup_operating_room_color": "FFFF0000",
         "personal_duty_color": "FFFF0000",
+        # 個人別の表で、本人の担当不可の日（勤務表が赤字・黄色セル）を塗る色
+        "personal_unavailable_fill": "FFFFF2CC",
         "personal_backup_color": "FF000000",
         "weekday_font_color": "FF000000",
         "saturday_font_color": "FF0070C0",
@@ -452,6 +459,10 @@ class Config:
     @property
     def backup_quota_priority(self) -> set[str]:
         return {str(n) for n in (self.backup.get("quota_priority") or [])}
+
+    @property
+    def backup_even_quota_prefer_more(self) -> set[str]:
+        return {str(n) for n in (self.backup.get("even_quota_prefer_more") or [])}
 
     @property
     def backup_always_available(self) -> set[str]:

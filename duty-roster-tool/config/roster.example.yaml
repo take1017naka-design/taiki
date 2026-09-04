@@ -138,6 +138,9 @@ backup_roster:
   even_quota: true
   # 予備の回数を優先する人（優先順位のはしごより回数を上に置く）
   quota_priority: []
+  # 均等割りが割り切れないとき、多いほうの日数を担当する人
+  # （7人で24日なら3日と4日に分かれる。ここに書いた人は4日にする）
+  even_quota_prefer_more: [担当B]
   # 予備の連続日数を見ない人（自動確定の日が多く、避けようがないため）
   # 連続日数を見ない人（自動確定の日が多く避けようがないため）。
   # 上限では止めないが、下の日数以上になったら確認事項に出す。
@@ -168,7 +171,8 @@ backup_roster:
     quota_deviation: 250   # 目標回数からのズレ（2乗あたり）
     quota_deviation_priority: 40000  # quota_priority の人のズレ（2乗あたり）
     even_quota_deviation: 3000       # 均等配分のときの平均からのズレ（2乗あたり）
-    ignored_extra_day: 2500          # 回数を見ない人に自動確定以外の日を充てる
+    even_quota_prefer_more: 9000     # even_quota_prefer_more の人が少ないほうの日数になった
+    ignored_extra_day: 6000          # 回数を見ない人に自動確定以外の日を充てる
     consecutive: 4000      # 待機と予備を合算して連日になる1件あたり
     holiday_fairness: 400     # 日曜・祝日の予備の年間の偏り（2乗あたり）
     holiday_month_even: 12000 # 日曜・祝日の予備の月内の偏り（各自1日ずつに近づける）
@@ -223,6 +227,8 @@ output:
   # 個人別の表の文字色（待機＝赤字、予備＝黒字）
   personal_duty_color: "FFFF0000"
   personal_backup_color: "FF000000"
+  # 個人別の表で、本人の担当不可の日（勤務表が赤字・黄色セル）を塗る色
+  personal_unavailable_fill: "FFFFF2CC"
   # 印刷設定（そのまま印刷できるようにしてある）
   paper_size: 9          # 9 = A4
   paper_landscape: true  # 横向き

@@ -88,12 +88,15 @@ def write_roster(
     availability_fn=None,
     candidates_fn=None,
     name_color_fn=None,
+    counts_targets: bool = True,
 ) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
 
-    _sheet_calendar(wb, cfg, engine, solution, sheet_name, title, name_color_fn)
+    _sheet_calendar(
+        wb, cfg, engine, solution, sheet_name, title, name_color_fn, counts_targets
+    )
     _sheet_list(
         wb, cfg, engine, solution, fixed or {}, partner, partner_label, candidates_fn
     )
@@ -113,6 +116,7 @@ def _sheet_calendar(
     sheet_name: str,
     title: str,
     name_color_fn=None,
+    counts_targets: bool = True,
 ) -> None:
     ws = wb.active
     ws.title = sheet_name
@@ -186,7 +190,7 @@ def _sheet_calendar(
             row=row + 4, column=1, value="※ 氏名が赤字＝翌日が手術室業務の担当者"
         ).font = Font(size=9, color="FF808080")
 
-    _counts_block(ws, cfg, engine, solution)
+    _counts_block(ws, cfg, engine, solution, counts_targets)
 
     last_col = int(cfg.output.get("counts_column", 9)) + 1
     setup_print(
@@ -197,8 +201,14 @@ def _sheet_calendar(
     )
 
 
-def _counts_block(ws, cfg: Config, engine: RuleEngine, solution: Solution) -> None:
-    """カレンダーの右横に、担当ごとの待機日数を出す。"""
+def _counts_block(
+    ws, cfg: Config, engine: RuleEngine, solution: Solution, targets: bool = True
+) -> None:
+    """カレンダーの右横に、担当ごとの待機日数を出す。
+
+    `targets` が False なら目標回数と突き合わせず、すべて黒字で出す
+    （予備待機表は待機表の目標回数とは別に決めるため）。
+    """
     col = int(cfg.output.get("counts_column", 9))
     row = int(cfg.output.get("counts_row", 3))
     quota = cfg.quota(engine.days_in_month)
@@ -227,7 +237,7 @@ def _counts_block(ws, cfg: Config, engine: RuleEngine, solution: Solution) -> No
         count_cell.font = Font(size=size)
         count_cell.border = BOX
         count_cell.alignment = CENTER
-        if count != target:
+        if targets and count != target:
             # 目標と食い違っていたら赤字で目立たせる（通常は起こらない）
             count_cell.font = Font(color="FFFF0000", bold=True, size=size)
 

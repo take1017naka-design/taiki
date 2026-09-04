@@ -80,6 +80,8 @@ class BackupSolver:
         self.w_quota_priority = float(w.get("quota_deviation_priority", 40000))
         self.even_quota = cfg.backup_even_quota
         self.w_even = float(w.get("even_quota_deviation", 3000))
+        self.prefer_more = cfg.backup_even_quota_prefer_more
+        self.w_prefer_more = float(w.get("even_quota_prefer_more", 9000))
         self.w_ignored_extra = float(w.get("ignored_extra_day", 2500))
         self.w_consec = float(w.get("consecutive", 600))
         self.max_run = {n: cfg.backup_max_run(n) for n in self.members}
@@ -204,7 +206,8 @@ class BackupSolver:
         pool = [n for n in self.members if n not in self.quota_ignore]
         if self.even_quota and pool:
             # quota_ignore を除く全員で均等にする
-            mean = sum(counts.get(n, 0) for n in pool) / len(pool)
+            total = sum(counts.get(n, 0) for n in pool)
+            mean = total / len(pool)
             for name in pool:
                 weight = (
                     self.w_quota_priority
@@ -212,6 +215,13 @@ class BackupSolver:
                     else self.w_even
                 )
                 cost += weight * (counts.get(name, 0) - mean) ** 2
+            # 割り切れないときは、指定した人を多いほうの日数にする
+            if self.prefer_more and self.w_prefer_more and total % len(pool):
+                more = -(-total // len(pool))  # 切り上げ
+                for name in self.prefer_more:
+                    if name in pool:
+                        short = max(0, more - counts.get(name, 0))
+                        cost += self.w_prefer_more * short ** 2
         else:
             for name, count in counts.items():
                 if name in self.quota_ignore:
@@ -399,6 +409,24 @@ class BackupSolver:
                 label = self.engine.next_day_last_resort_label(name, day)
                 if label:
                     out.append(f"{day:%m/%d} {name}: {label}（他に組めない場合の候補）")
+        pool = [n for n in self.members if n not in self.quota_ignore]
+        if self.prefer_more and pool:
+            counts = self.counts_of(assignment)
+            total = sum(counts.get(n, 0) for n in pool)
+            if total % len(pool):
+                more = -(-total // len(pool))
+                short = [
+                    n
+                    for n in sorted(self.prefer_more)
+                    if n in pool and counts.get(n, 0) < more
+                ]
+                if short:
+                    out.append(
+                        "、".join(short)
+                        + f": 予備を多いほうの{more}回にできませんでした"
+                        + "（" + "、".join(f"{n}{counts.get(n, 0)}回" for n in short) + "）"
+                    )
+
         if self.forced:
             forced_by_rule = {d: n for d, n in self.forced.items() if d not in self.fixed}
             if forced_by_rule:

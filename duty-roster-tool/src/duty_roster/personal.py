@@ -4,6 +4,7 @@
 
 * 待機の日 … 赤字で「待機」
 * 予備の日 … 黒字で「予備」
+* 担当不可の日（勤務表が赤字・黄色セル）… セルを黄色で塗る
 * それ以外 … 空欄
 
 書式・印刷設定は待機表と同じ（日曜始まり、A4横1ページ）。
@@ -58,6 +59,7 @@ def _sheet_for(
 
     duty_color = out.get("personal_duty_color", "FFFF0000")
     backup_color = out.get("personal_backup_color", "FF000000")
+    unavailable_fill = out.get("personal_unavailable_fill", "FFFFF2CC")
 
     title = f"{engine.year}年{engine.month}月　{name}　待機・予備"
     ws.cell(row=1, column=1, value=title).font = Font(
@@ -119,6 +121,11 @@ def _sheet_for(
                 color=color, bold=bold, size=int(out.get("name_font_size", 18))
             )
 
+        # 本人の希望による担当不可（勤務表が赤字・黄色セル）の日は黄色で塗る
+        if unavailable_fill and engine.is_personally_unavailable(name, day):
+            date_cell.fill = PatternFill("solid", fgColor=unavailable_fill)
+            role_cell.fill = PatternFill("solid", fgColor=unavailable_fill)
+            continue
         fill = _day_fill(engine, day, out)
         if fill is not None:
             date_cell.fill = fill
@@ -133,7 +140,7 @@ def _sheet_for(
     ws.cell(
         row=row + 3,
         column=1,
-        value=f"※ 赤字＝{DUTY_LABEL} / 黒字＝{BACKUP_LABEL}",
+        value=f"※ 赤字＝{DUTY_LABEL} / 黒字＝{BACKUP_LABEL} / 黄色のセル＝担当不可（希望）",
     ).font = Font(size=9, color="FF808080")
 
     _counts(ws, cfg, duty_days, backup_days, duty_color, backup_color)

@@ -87,6 +87,10 @@ class RuleEngine:
     def is_yellow(self, name: str, day: dt.date) -> bool:
         return self.schedule.day_cells(name, day).yellow
 
+    def is_personally_unavailable(self, name: str, day: dt.date) -> bool:
+        """本人の希望による担当不可か（勤務表が黄色セル、または赤字の不在表記）。"""
+        return self.is_yellow(name, day) or self.has_red_text(name, day)
+
     def has_red_text(self, name: str, day: dt.date) -> bool:
         """赤字の「本人希望の不在」があるか。
 
