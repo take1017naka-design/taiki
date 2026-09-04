@@ -52,6 +52,9 @@ DEFAULTS: dict[str, Any] = {
         # 祝日・日曜に限り「赤字でなければ待機可能」とする記号。
         # 祝日は全員が「公」になるため、これが無いと担当者を選べない。
         "holiday_relaxed": ["公"],
+        # 意味の分かっている記号。ここに無い記号が勤務表に出てきたら報告する。
+        # （優先順位・手術室の判定に使う記号は自動で足されるので書かなくてよい）
+        "known_codes": ["―/公", "OP", "アーム", "O", "会議", "PM", "カテ", "ABL"],
         # 赤字をどこまで「本人希望の不在」とみなすか。
         #   absence_codes: 不在表記（公・有・夏 など）の赤字だけ
         #   any          : 赤字のセルはすべて
@@ -372,6 +375,21 @@ class Config:
             normalize_code(k): normalize_code(v)
             for k, v in (self.raw.get("code_aliases") or {}).items()
         }
+
+    @property
+    def known_codes(self) -> set[str]:
+        """意味の分かっている勤務記号をすべて集める。"""
+        known: set[str] = set()
+        known |= {normalize_code(c) for c in self.raw["plan_codes"].get("known_codes", [])}
+        for key in ("absent_always", "absent_if_red", "holiday_relaxed"):
+            known |= {normalize_code(c) for c in self.raw["plan_codes"].get(key, [])}
+        for ladder in ("mon_thu", "sun"):
+            for group in self.raw["priority"].get(ladder, []):
+                known |= {normalize_code(c) for c in group if c}
+        known |= self.operating_room_judge_codes
+        known |= set(self.unlisted_code_tier)
+        known |= set(self.code_aliases) | set(self.code_aliases.values())
+        return {c for c in known if c}
 
     @property
     def holiday_relaxed(self) -> set[str]:

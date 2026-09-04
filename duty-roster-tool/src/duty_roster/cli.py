@@ -165,7 +165,7 @@ def cmd_generate(args) -> int:
     else:
         solution = solve(cfg, engine, fixed)
 
-    notes = list(schedule.warnings)
+    notes = list(schedule.warnings) + unknown_code_notes(engine)
     if engine.exception_days:
         notes.append(
             "全員が不在（一斉「公」など）のため、不在による待機不可を解除した日: "
@@ -227,6 +227,22 @@ def cmd_generate(args) -> int:
         write_personal_rosters(personal, cfg, engine, solution.assignment, backup_assignment)
         print(f"個人別待機表: {personal}")
     return 1 if violations else 0
+
+
+def unknown_code_notes(engine) -> list[str]:
+    """勤務表に出てきた「意味の分からない記号」を確認事項として書き出す。"""
+    unknown = engine.unknown_codes()
+    if not unknown:
+        return []
+    out = [
+        "見慣れない記号がありました。意味を教えてください"
+        "（現状は手術室勤務として扱っています）:"
+    ]
+    for code, where in sorted(unknown.items(), key=lambda x: (-len(x[1]), x[0])):
+        span = "、".join(f"{d:%m/%d}{n}" for n, d in where[:6])
+        more = f" ほか{len(where) - 6}件" if len(where) > 6 else ""
+        out.append(f"  「{code}」{len(where)}件: {span}{more}")
+    return out
 
 
 def _backup_availability_view(engine):
@@ -355,7 +371,7 @@ def cmd_check(args) -> int:
 
     print(f"勤務表: {schedule_path}")
     print(f"検出した対象者: {', '.join(schedule.names_in_sheet)}")
-    for w in schedule.warnings:
+    for w in schedule.warnings + unknown_code_notes(engine):
         print(f"  ! {w}")
     if engine.exception_days:
         print(

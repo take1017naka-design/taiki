@@ -387,6 +387,21 @@ class RuleEngine:
         return [n for n in self.members if self.eligible(n, day)]
 
     # -- 優先順位 ----------------------------------------------------------
+    def unknown_codes(self) -> dict[str, list[tuple[str, dt.date]]]:
+        """設定のどこにも出てこない記号と、それが出てくる人・日を集める。
+
+        新しい記号は意味が分からないと優先順位も手術室かどうかも決められない
+        （既定では「手術室」として扱われる）ので、見つけたら確認してもらう。
+        """
+        known = self.cfg.known_codes
+        found: dict[str, list[tuple[str, dt.date]]] = {}
+        for name in self.members:
+            for day in self.days:
+                for code in self.codes(name, day):
+                    if code and code not in known:
+                        found.setdefault(code, []).append((name, day))
+        return found
+
     def next_day_duties(self, name: str, day: dt.date) -> list[str]:
         return self.duty_codes(name, day + dt.timedelta(days=1))
 

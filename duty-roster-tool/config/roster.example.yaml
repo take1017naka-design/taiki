@@ -51,6 +51,9 @@ plan_codes:
   absent_if_red: []
   # 祝日・日曜に限り「赤字でなければ待機可能」とする記号
   holiday_relaxed: ["公"]
+  # 意味の分かっている記号。ここに無い記号が勤務表に出てきたら確認事項に出す。
+  # （優先順位・手術室の判定に使う記号は自動で足されるので書かなくてよい）
+  known_codes: ["―/公", "OP", "アーム", "O", "会議", "PM", "カテ", "ABL"]
   # 赤字をどこまで「本人希望の不在」とみなすか: absence_codes / any
   # （実際の勤務表では カテ・ABL の強調にも赤字が使われるため absence_codes 推奨）
   red_scope: absence_codes

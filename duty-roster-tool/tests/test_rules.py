@@ -329,3 +329,17 @@ def test_operating_room_is_blank_both_rows_or_arm_anywhere():
     # 勤務内容がある日、休みの日は手術室ではない
     assert not engine.next_day_is_operating_room("担当D", d(4))
     assert not engine.next_day_is_operating_room("担当E", d(4))
+
+
+def test_unknown_codes_are_reported():
+    """設定のどこにも出てこない記号は、確認事項として拾い出す。"""
+    engine = build_engine(
+        {
+            ("担当C", d(4)): [Cell(text="ME")],
+            ("担当D", d(4)): [Cell(text="心カテ待機"), Cell(text="公")],
+            ("担当E", d(5)): [Cell(text="心カテ待機")],
+        }
+    )
+    unknown = engine.unknown_codes()
+    assert set(unknown) == {"心カテ待機"}
+    assert sorted(n for n, _ in unknown["心カテ待機"]) == ["担当D", "担当E"]
