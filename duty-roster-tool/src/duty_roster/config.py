@@ -144,6 +144,8 @@ DEFAULTS: dict[str, Any] = {
         "anchor_rule_on_weekends": False,
         # 回数の目標を見ない人（バックアップ役は自動確定の日が多いため）
         "quota_ignore": [],
+        # 回数の目標を優先する人。優先順位のはしごより回数を上に置く。
+        "quota_priority": [],
         # 連続日数を見ない人（自動確定の日が多く、連続を避けようがないため）。
         # 上限では止めないが、consecutive_report_threshold 日以上になったら報告する。
         "consecutive_ignore": [],
@@ -161,7 +163,10 @@ DEFAULTS: dict[str, Any] = {
         "max_run_default": 2,
         "max_run_exceptions": {},
         "weights": {
-            "quota_deviation": 250,   # 目標回数からのズレ（2乗あたり）
+            "quota_deviation": 250,    # 目標回数からのズレ（2乗あたり）
+            # quota_priority の人のズレ（2乗あたり）。最後の段のコストより重くして、
+            # 翌日が手術室の日でも回数を合わせにいく。
+            "quota_deviation_priority": 40000,
             # 合算して連日になる1件あたり。待機表と同じ順序になるように、
             # 前日(土)不在の△(1300)より重く、翌日手術室の△(2500)より軽くする。
             "consecutive": 2000,
@@ -385,6 +390,10 @@ class Config:
     @property
     def backup_consecutive_ignore(self) -> set[str]:
         return {str(n) for n in (self.backup.get("consecutive_ignore") or [])}
+
+    @property
+    def backup_quota_priority(self) -> set[str]:
+        return {str(n) for n in (self.backup.get("quota_priority") or [])}
 
     @property
     def backup_always_available(self) -> set[str]:
@@ -617,6 +626,7 @@ def validate(cfg: Config) -> None:
         check(f"backup_roster.forbidden_pairs[{primary}]", sorted(blocked))
     check("backup_roster.max_run_exceptions", list(cfg.backup.get("max_run_exceptions") or {}))
     check("backup_roster.quota_ignore", sorted(cfg.backup_quota_ignore))
+    check("backup_roster.quota_priority", sorted(cfg.backup_quota_priority))
     check("backup_roster.consecutive_ignore", sorted(cfg.backup_consecutive_ignore))
     check(
         "backup_roster.holiday_fairness_ignore",

@@ -50,6 +50,7 @@ class BackupSolver:
         self.members = engine.members
         self.target = cfg.quota(engine.days_in_month)
         self.quota_ignore = cfg.backup_quota_ignore
+        self.quota_priority = cfg.backup_quota_priority
         self.consecutive_ignore = cfg.backup_consecutive_ignore
         self.report_threshold = cfg.backup_consecutive_report_threshold
         # 土日は予備に入れない人／祝日に入れたら要相談の人
@@ -72,6 +73,7 @@ class BackupSolver:
         w = conf.get("weights", {})
         self.w_violation = float(w.get("violation", 1_000_000))
         self.w_quota = float(w.get("quota_deviation", 250))
+        self.w_quota_priority = float(w.get("quota_deviation_priority", 40000))
         self.w_consec = float(w.get("consecutive", 600))
         self.max_run = {n: cfg.backup_max_run(n) for n in self.members}
         self.forbidden = cfg.backup_forbidden_pairs
@@ -171,7 +173,10 @@ class BackupSolver:
         for name, count in counts.items():
             if name in self.quota_ignore:
                 continue  # 回数の目標を見ない人（自動確定の日が多いため）
-            cost += self.w_quota * (count - self.target.get(name, 0)) ** 2
+            weight = (
+                self.w_quota_priority if name in self.quota_priority else self.w_quota
+            )
+            cost += weight * (count - self.target.get(name, 0)) ** 2
 
         # 日曜の予備も月内で1人1回ずつ（無理なら許容してコストを載せる）
         if self.sunday_once_each and self.w_sunday_repeat:
@@ -281,6 +286,14 @@ class BackupSolver:
                         + "、".join(f"{d:%m/%d}" for d in days)
                         + "）"
                     )
+
+        counts = self.counts_of(assignment)
+        for name in sorted(self.quota_priority):
+            target = self.target.get(name, 0)
+            if counts.get(name, 0) != target:
+                out.append(
+                    f"{name}: 予備が {counts.get(name, 0)} 回で目標 {target} 回に届いていません"
+                )
 
         for day in self.days:
             name = assignment[day]
