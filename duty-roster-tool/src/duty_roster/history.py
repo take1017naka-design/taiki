@@ -71,5 +71,58 @@ class History:
         self.data["holiday_backup"][self._key(year, month)] = counts
         return counts
 
+    def import_backup_roster(self, path) -> tuple[int, int, dict[str, int]]:
+        """作成済みの予備待機表（.xlsx）から、その月の実績を取り込む。
+
+        実績ファイル（history.json）を持ち回れないときに、
+        すでに配ってある予備待機表から通算回数を組み直すために使う。
+        """
+        from openpyxl import load_workbook
+
+        from .config import normalize_name
+        from .holidays_jp import holidays_in_month
+
+        wb = load_workbook(Path(path), data_only=True)
+        if "一覧" not in wb.sheetnames:
+            raise ValueError(
+                f"{Path(path).name} に「一覧」シートがありません。"
+                "このツールで作った予備待機表を渡してください。"
+            )
+        ws = wb["一覧"]
+        header = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
+        try:
+            date_col = header.index("日付") + 1
+            name_col = header.index("担当") + 1
+        except ValueError as exc:
+            raise ValueError(
+                f"{Path(path).name} の「一覧」シートに「日付」「担当」の列がありません。"
+            ) from exc
+
+        assignment: dict[dt.date, str] = {}
+        for row in range(2, ws.max_row + 1):
+            raw = ws.cell(row=row, column=date_col).value
+            name = ws.cell(row=row, column=name_col).value
+            if raw is None or not name:
+                continue
+            if isinstance(raw, dt.datetime):
+                day = raw.date()
+            elif isinstance(raw, dt.date):
+                day = raw
+            else:
+                day = dt.datetime.strptime(str(raw).strip(), "%Y/%m/%d").date()
+            assignment[day] = normalize_name(str(name))
+        if not assignment:
+            raise ValueError(f"{Path(path).name} から担当を読み取れませんでした。")
+
+        first = min(assignment)
+        year, month = first.year, first.month
+        holidays = set(holidays_in_month(year, month))
+
+        def is_red(day: dt.date) -> bool:
+            return day.weekday() == 6 or day in holidays
+
+        counts = self.record_holiday_backup(year, month, assignment, is_red)
+        return year, month, counts
+
     def recorded_months(self) -> list[str]:
         return sorted(self.data["holiday_backup"])

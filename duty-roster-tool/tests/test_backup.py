@@ -221,3 +221,30 @@ def test_prefer_more_takes_the_larger_share(rosters):
         assert counts[target] == -(-total // len(pool))
     else:
         assert counts[target] == total // len(pool)
+
+
+def test_history_can_be_imported_from_a_backup_roster(rosters, tmp_path):
+    """作成済みの予備待機表から、その月の日曜・祝日の実績を取り込める。"""
+    from duty_roster.history import History
+
+    engine, primary, backup = rosters
+    path = write_roster(
+        tmp_path / "予備待機表.xlsx",
+        CFG,
+        engine,
+        backup,
+        sheet_name="予備待機表",
+        title="カテ予備待機表",
+        partner=primary.assignment,
+    )
+    history = History.load(tmp_path / "history.json")
+    year, month, counts = history.import_backup_roster(path)
+
+    assert (year, month) == (YEAR, MONTH)
+    expected: dict[str, int] = {}
+    for day in engine.days:
+        if engine.is_red_day(day):
+            name = backup.assignment[day]
+            expected[name] = expected.get(name, 0) + 1
+    assert counts == expected
+    assert history.recorded_months() == [f"{YEAR}-{MONTH:02d}"]

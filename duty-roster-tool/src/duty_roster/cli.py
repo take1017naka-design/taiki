@@ -91,6 +91,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--path", "--history", dest="path", help="実績ファイルの場所"
     )
     hist.add_argument("--reset", action="store_true", help="実績を消して最初からにする")
+    hist.add_argument(
+        "--import",
+        dest="import_files",
+        nargs="+",
+        metavar="予備待機表.xlsx",
+        help="作成済みの予備待機表から実績を取り込む（複数指定できる）",
+    )
 
     smp = sub.add_parser("sample", help="動作確認用のダミー勤務表を作る")
     smp.add_argument("-m", "--month", type=parse_month, required=True, help="対象年月（例 2026-08）")
@@ -452,6 +459,18 @@ def cmd_history(args) -> int:
         print(f"実績を消しました: {path}")
         print("次に作る月から、日曜・祝日の予備の回数を数え直します。")
         return 0
+
+    if getattr(args, "import_files", None):
+        for entry in args.import_files:
+            try:
+                year, month, counts = history.import_backup_roster(entry)
+            except (ValueError, OSError) as exc:
+                print(f"読み取れませんでした: {exc}")
+                return 1
+            summary = " ".join(f"{n}{c}" for n, c in sorted(counts.items())) or "なし"
+            print(f"取り込みました: {year}年{month}月 の日曜・祝日の予備 … {summary}")
+        history.save()
+        print(f"実績を保存しました: {history.path}")
 
     months = history.recorded_months()
     if not months:
