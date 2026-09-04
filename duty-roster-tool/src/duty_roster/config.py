@@ -279,6 +279,8 @@ DEFAULTS: dict[str, Any] = {
         "personal_unavailable_fill": "FFFFF2CC",
         # 個人別の表で、翌日が手術室業務の担当日（待機・予備）を塗る色
         "personal_operating_room_fill": "FFC6EFCE",
+        # 個人別の表で、担当（待機・予備）が連日になる日を塗る色
+        "personal_consecutive_fill": "FFE4D7F5",
         "personal_backup_color": "FF000000",
         "weekday_font_color": "FF000000",
         "saturday_font_color": "FF0070C0",

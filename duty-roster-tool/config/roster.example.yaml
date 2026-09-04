@@ -235,6 +235,8 @@ output:
   personal_unavailable_fill: "FFFFF2CC"
   # 個人別の表で、翌日が手術室業務の担当日（待機・予備）を塗る色
   personal_operating_room_fill: "FFC6EFCE"
+  # 個人別の表で、担当（待機・予備）が連日になる日を塗る色
+  personal_consecutive_fill: "FFE4D7F5"
   # 印刷設定（そのまま印刷できるようにしてある）
   paper_size: 9          # 9 = A4
   paper_landscape: true  # 横向き

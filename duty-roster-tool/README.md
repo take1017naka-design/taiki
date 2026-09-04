@@ -347,6 +347,8 @@ duty-roster history --import 予備待機表_202610.xlsx 予備待機表_202611.
 - **待機の日＝赤字で「待機」／予備の日＝黒字で「予備」**、それ以外は空欄
 - **翌日が手術室業務の担当日**（待機・予備）は**セルを緑で塗ります**
   （`output.personal_operating_room_fill`）
+- **担当が連日になる日**（待機・予備を合わせて前後どちらかも担当）は
+  **セルを薄紫で塗ります**（`output.personal_consecutive_fill`）
 - **担当不可の日**（勤務表が赤字・黄色セル＝本人希望）は**セルを黄色で塗ります**
   （`output.personal_unavailable_fill`）
 - **他の人の氏名は一切出しません**（配布用）

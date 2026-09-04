@@ -134,3 +134,35 @@ def test_operating_room_days_are_filled_green(personal):
             and engine.next_day_is_operating_room(name, day)
         }
         assert green == expected, name
+
+
+def test_consecutive_days_are_filled_light_purple(personal):
+    """担当（待機・予備）が連日になる日は、セルを薄紫で塗る。"""
+    engine, primary, backup, wb = personal
+    fill_color = CFG.output["personal_consecutive_fill"]
+    room_color = CFG.output["personal_operating_room_fill"]
+    for name in engine.members:
+        ws = wb[name]
+        purple = set()
+        for row in range(4, ws.max_row + 1, 2):
+            for col in range(1, 8):
+                value = ws.cell(row=row, column=col).value
+                if not isinstance(value, int):
+                    continue
+                cell_fill = ws.cell(row=row, column=col).fill
+                if cell_fill.start_color and cell_fill.start_color.rgb == fill_color:
+                    purple.add(value)
+        mine = {
+            day
+            for day in engine.days
+            if name in (primary.assignment.get(day), backup.assignment.get(day))
+        }
+        one = dt.timedelta(days=1)
+        expected = {
+            day.day
+            for day in mine
+            if (day - one in mine or day + one in mine)
+            # 翌日が手術室の日は緑が優先される
+            and not (room_color and engine.next_day_is_operating_room(name, day))
+        }
+        assert purple == expected, name

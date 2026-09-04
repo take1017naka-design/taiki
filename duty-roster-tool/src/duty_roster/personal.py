@@ -6,6 +6,7 @@
 * 予備の日 … 黒字で「予備」
 * 担当不可の日（勤務表が赤字・黄色セル）… セルを黄色で塗る
 * 翌日が手術室業務の担当日 … セルを緑色で塗る
+* 担当（待機・予備）が連日になる日 … セルを薄紫で塗る
 * それ以外 … 空欄
 
 書式・印刷設定は待機表と同じ（日曜始まり、A4横1ページ）。
@@ -62,6 +63,11 @@ def _sheet_for(
     backup_color = out.get("personal_backup_color", "FF000000")
     unavailable_fill = out.get("personal_unavailable_fill", "FFFFF2CC")
     operating_room_fill = out.get("personal_operating_room_fill", "FFC6EFCE")
+    consecutive_fill = out.get("personal_consecutive_fill", "FFE4D7F5")
+    # 待機・予備を合わせて連日になる日（前後どちらかが自分の担当日）
+    mine = {d for d in engine.days if name in (primary.get(d), backup.get(d))}
+    one_day = dt.timedelta(days=1)
+    runs = {d for d in mine if (d - one_day) in mine or (d + one_day) in mine}
 
     title = f"{engine.year}年{engine.month}月　{name}　待機・予備"
     ws.cell(row=1, column=1, value=title).font = Font(
@@ -123,9 +129,11 @@ def _sheet_for(
                 color=color, bold=bold, size=int(out.get("name_font_size", 18))
             )
 
-        # 担当日で翌日が手術室業務なら緑、本人希望の担当不可なら黄色で塗る
+        # 担当日は「翌日が手術室（緑）」「連日（薄紫）」、担当外は「不可（黄）」
         if label and operating_room_fill and engine.next_day_is_operating_room(name, day):
             special = operating_room_fill
+        elif label and consecutive_fill and day in runs:
+            special = consecutive_fill
         elif not label and unavailable_fill and engine.is_personally_unavailable(name, day):
             special = unavailable_fill
         else:
@@ -150,7 +158,8 @@ def _sheet_for(
         column=1,
         value=(
             f"※ 赤字＝{DUTY_LABEL} / 黒字＝{BACKUP_LABEL}"
-            " / 緑のセル＝翌日が手術室業務 / 黄色のセル＝担当不可（希望）"
+            " / 緑のセル＝翌日が手術室業務 / 薄紫のセル＝連日"
+            " / 黄色のセル＝担当不可（希望）"
         ),
     ).font = Font(size=9, color="FF808080")
 
