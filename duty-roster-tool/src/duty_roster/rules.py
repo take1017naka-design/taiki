@@ -57,6 +57,7 @@ class RuleEngine:
         self.sun_blocked_next_duties = cfg.sun_blocked_next_duties
         self.operating_room_judge = cfg.operating_room_judge_codes
         self.operating_room_exempt = cfg.operating_room_exempt_members
+        self.operating_room_skip_weekdays = cfg.operating_room_skip_weekdays
         self.operating_room_exception_tier = cfg.operating_room_exception_tier
         self.unlisted_code_tier = cfg.unlisted_code_tier
         self.manual_unavailable = cfg.manual_unavailable
@@ -167,6 +168,9 @@ class RuleEngine:
         手術室に入らない人（`operating_room_exempt_members`）は常に手術室外。
         """
         if name in self.operating_room_exempt:
+            return False
+        if day.weekday() in self.operating_room_skip_weekdays:
+            # 翌日に手術がない曜日（土曜は点検がメイン）。手術室としては見ない
             return False
         nxt = day + dt.timedelta(days=1)
         codes = self.codes(name, nxt)
@@ -415,6 +419,8 @@ class RuleEngine:
         if wd == SAT:
             return 0
         if wd == FRI:
+            if self.cfg.priority.get("fri_mode", "any") != "next_day_working":
+                return 0  # 優先順位なし（不可希望でなければ誰でも可）
             nxt = day + dt.timedelta(days=1)
             return 0 if self.is_working(name, nxt) else 1
         tiers = self.cfg.priority["sun" if wd == SUN else "mon_thu"]
@@ -449,6 +455,8 @@ class RuleEngine:
         if wd == SAT:
             return "土曜（優先順位なし）"
         if wd == FRI:
+            if self.cfg.priority.get("fri_mode", "any") != "next_day_working":
+                return "金曜（優先順位なし）"
             return "第1優先(翌日勤務あり)" if t == 0 else "第2優先(その他)"
         return f"第{t + 1}優先"
 

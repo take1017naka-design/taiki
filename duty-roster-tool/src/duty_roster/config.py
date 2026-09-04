@@ -98,7 +98,12 @@ DEFAULTS: dict[str, Any] = {
         # 祝日は、その日に出勤している人を待機にする（いる場合）。
         # 祝日は多くが「公」になるため、実際に院内にいる人が担当する。
         "holiday_prefer_working": True,
-        "fri_mode": "next_day_working",
+        # 金曜: any = 優先順位なし（不可希望でなければ誰でも可）
+        #       next_day_working = 翌日(土)に勤務がある人を優先
+        "fri_mode": "any",
+        # この曜日は「翌日が手術室」を見ない。
+        # 土曜は点検がメインで手術がないため、金曜は対象外にしている。
+        "operating_room_skip_weekdays": ["金"],
         # 土曜: weekend_pool の在席者（優先順位なし）
         "sat_mode": "weekend_pool",
     },
@@ -192,12 +197,12 @@ DEFAULTS: dict[str, Any] = {
         "weights": {
             "quota_deviation": 250,    # 目標回数からのズレ（2乗あたり）
             # even_quota のときの、平均からのズレ（2乗あたり）
-            "even_quota_deviation": 3000,
+            "even_quota_deviation": 6000,
             # 均等割りで多いほうの日数にしたい人が、少ないほうになった場合
             "even_quota_prefer_more": 9000,
             # 回数を見ない人（バックアップ役）に、自動確定以外の日を充てる1日あたり。
             # 何もしないと余った日が集まってしまうため。
-            "ignored_extra_day": 6000,
+            "ignored_extra_day": 9000,
             # quota_priority の人のズレ（2乗あたり）。最後の段のコストより重くして、
             # 翌日が手術室の日でも回数を合わせにいく。
             "quota_deviation_priority": 40000,
@@ -577,6 +582,18 @@ class Config:
             for c in self.raw["priority"].get("operating_room_judge_codes", [])
             if c
         }
+
+    @property
+    def operating_room_skip_weekdays(self) -> set[int]:
+        """「翌日が手術室」を見ない曜日（月=0 … 日=6）。"""
+        names = "月火水木金土日"
+        out: set[int] = set()
+        for value in self.raw["priority"].get("operating_room_skip_weekdays", []):
+            if isinstance(value, int):
+                out.add(value % 7)
+            elif isinstance(value, str) and value and value[0] in names:
+                out.add(names.index(value[0]))
+        return out
 
     @property
     def operating_room_exempt_members(self) -> set[str]:

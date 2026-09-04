@@ -89,7 +89,11 @@ priority:
   unlisted_code_tier: {PM: 2, ABL: 2, カテ: 2, 会議: 2}
   # 祝日は、その日に出勤している人を待機にする（いる場合）
   holiday_prefer_working: true
-  fri_mode: next_day_working   # 金曜は翌日(土)に勤務がある人を優先
+  # 金曜: any = 優先順位なし（不可希望でなければ誰でも可。土曜は点検がメインで手術がないため）
+  #       next_day_working = 翌日(土)に勤務がある人を優先
+  fri_mode: any
+  # この曜日は「翌日が手術室」を見ない（土曜に手術がないので金曜は対象外）
+  operating_room_skip_weekdays: ["金"]
   sat_mode: weekend_pool
 
 # 最適化の重み（大きいほど強く避ける）
@@ -170,9 +174,9 @@ backup_roster:
   weights:
     quota_deviation: 250   # 目標回数からのズレ（2乗あたり）
     quota_deviation_priority: 40000  # quota_priority の人のズレ（2乗あたり）
-    even_quota_deviation: 3000       # 均等配分のときの平均からのズレ（2乗あたり）
+    even_quota_deviation: 6000       # 均等配分のときの平均からのズレ（2乗あたり）
     even_quota_prefer_more: 9000     # even_quota_prefer_more の人が少ないほうの日数になった
-    ignored_extra_day: 6000          # 回数を見ない人に自動確定以外の日を充てる
+    ignored_extra_day: 9000          # 回数を見ない人に自動確定以外の日を充てる
     consecutive: 4000      # 待機と予備を合算して連日になる1件あたり
     holiday_fairness: 400     # 日曜・祝日の予備の年間の偏り（2乗あたり）
     holiday_month_even: 12000 # 日曜・祝日の予備の月内の偏り（各自1日ずつに近づける）

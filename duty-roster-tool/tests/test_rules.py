@@ -301,15 +301,34 @@ def test_other_duty_codes_count_as_working():
     assert engine.eligible("担当C", d(4))
 
 
-def test_friday_prefers_people_working_on_saturday():
+def test_friday_has_no_priority_order():
+    """金曜は優先順位なし（土曜は点検がメインで手術がないため）。"""
     engine = build_engine(
         {
             ("担当C", d(8)): [Cell(text="ME")],
             ("担当D", d(8)): [Cell(text="有")],
         }
     )
+    # 翌日(土)に勤務があってもなくても同じ段。翌日は手術室として見ない
     assert engine.tier("担当C", d(7)) == 0
-    assert engine.tier("担当D", d(7)) == 1
+    assert engine.tier("担当D", d(7)) == 0
+    assert not engine.next_day_is_operating_room("担当D", d(7))
+
+
+def test_friday_can_prefer_people_working_on_saturday():
+    """fri_mode: next_day_working にすると、翌日(土)に勤務がある人を優先する。"""
+    engine = build_engine(
+        {
+            ("担当C", d(8)): [Cell(text="ME")],
+            ("担当D", d(8)): [Cell(text="有")],
+        }
+    )
+    engine.cfg.raw["priority"]["fri_mode"] = "next_day_working"
+    try:
+        assert engine.tier("担当C", d(7)) == 0
+        assert engine.tier("担当D", d(7)) == 1
+    finally:
+        engine.cfg.raw["priority"]["fri_mode"] = "any"
 
 
 def test_operating_room_is_blank_both_rows_or_arm_anywhere():
