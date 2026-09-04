@@ -129,6 +129,10 @@ backup_roster:
   consecutive_report_threshold: 4
   # 日曜・祝日の予備を年間で均等にする。ここに書いた人は対象外。
   holiday_fairness_ignore: [担当A]
+  # 土日は予備に入れない人
+  weekend_excluded: [担当A]
+  # 祝日に予備へ入れたら「要相談」として確認事項に出す人
+  holiday_consult: [担当A]
   # 待機がこの人の日は、予備にこの人たちを入れない
   forbidden_pairs:
     担当C: [担当G]
@@ -141,6 +145,7 @@ backup_roster:
     quota_deviation: 250   # 目標回数からのズレ（2乗あたり）
     consecutive: 1500      # 待機と予備を合算して連日になる1件あたり
     holiday_fairness: 400  # 日曜・祝日の予備の年間の偏り（2乗あたり）
+    holiday_consult: 2000  # 祝日に holiday_consult の人を充てる
     violation: 1000000     # ハード制約違反
   search:
     restarts: 12

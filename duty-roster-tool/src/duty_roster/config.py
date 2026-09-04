@@ -150,6 +150,10 @@ DEFAULTS: dict[str, Any] = {
         "consecutive_report_threshold": 4,
         # 日曜・祝日の予備を年間で均等にする。ここに書いた人は対象外。
         "holiday_fairness_ignore": [],
+        # 土日は予備に入れない人（祝日と重なる日は下の holiday_consult で扱う）
+        "weekend_excluded": [],
+        # 祝日に予備へ入れたら「要相談」として確認事項に出す人
+        "holiday_consult": [],
         # 待機＋予備を合算した連続日数の上限
         "max_run_default": 2,
         "max_run_exceptions": {},
@@ -157,6 +161,7 @@ DEFAULTS: dict[str, Any] = {
             "quota_deviation": 250,   # 目標回数からのズレ（2乗あたり）
             "consecutive": 1500,      # 合算して連日になる1件あたり
             "holiday_fairness": 400,  # 日曜・祝日の予備の年間の偏り（2乗あたり）
+            "holiday_consult": 2000,  # 祝日に holiday_consult の人を充てる
             "violation": 1_000_000,   # ハード制約違反
         },
         "search": {"restarts": 12, "iterations": 4000},
@@ -363,6 +368,14 @@ class Config:
     @property
     def backup_consecutive_ignore(self) -> set[str]:
         return {str(n) for n in (self.backup.get("consecutive_ignore") or [])}
+
+    @property
+    def backup_weekend_excluded(self) -> set[str]:
+        return {str(n) for n in (self.backup.get("weekend_excluded") or [])}
+
+    @property
+    def backup_holiday_consult(self) -> set[str]:
+        return {str(n) for n in (self.backup.get("holiday_consult") or [])}
 
     @property
     def backup_consecutive_report_threshold(self) -> int:
@@ -578,6 +591,8 @@ def validate(cfg: Config) -> None:
         "backup_roster.holiday_fairness_ignore",
         sorted(cfg.backup_holiday_fairness_ignore),
     )
+    check("backup_roster.weekend_excluded", sorted(cfg.backup_weekend_excluded))
+    check("backup_roster.holiday_consult", sorted(cfg.backup_holiday_consult))
 
     table = cfg.raw["quota_by_month_length"]
     if not table:

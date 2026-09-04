@@ -140,3 +140,33 @@ def test_holiday_backup_uses_the_history(rosters):
 
     biased = solve_backup(CFG, engine, primary.assignment, None, loaded)
     assert light in [biased.assignment[d] for d in holidays]
+
+
+def test_weekend_excluded_never_appears_on_saturday_or_sunday(rosters):
+    """土日は予備の対象外にした人が入らない（祝日と重なる日を除く）。"""
+    engine, _, backup = rosters
+    excluded = CFG.backup_weekend_excluded
+    assert excluded, "サンプル設定に weekend_excluded がない"
+    for day in engine.days:
+        if day.weekday() not in (5, 6) or engine.is_holiday(day):
+            continue
+        assert backup.assignment[day] not in excluded, f"{day:%m/%d} に {backup.assignment[day]}"
+
+
+def test_holiday_assignment_of_consult_member_is_reported():
+    """祝日に「要相談」の人を予備にしたら確認事項に出る。"""
+    from duty_roster.backup import BackupSolver
+    from duty_roster.rules import RuleEngine
+    from duty_roster.workbook import DayCells, WorkSchedule
+
+    holiday = dt.date(2026, 8, 11)   # 山の日
+    schedule = WorkSchedule(2026, 8, {}, CFG.member_names)
+    engine = RuleEngine(CFG, schedule, 2026, 8)
+    consult = sorted(CFG.backup_holiday_consult)[0]
+    other = next(n for n in CFG.member_names if n != consult)
+
+    primary = {d: other for d in engine.days}
+    solver = BackupSolver(CFG, engine, primary)
+    assignment = {d: consult for d in engine.days}
+    messages = solver.collect_violations(assignment)
+    assert any(f"{holiday:%m/%d}" in m and "相談" in m for m in messages)
