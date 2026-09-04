@@ -40,6 +40,7 @@ class BackupSolver:
         engine: RuleEngine,
         primary: dict[dt.date, str],
         fixed: dict[dt.date, str] | None = None,
+        holiday_history: dict[str, int] | None = None,
     ):
         self.cfg = cfg
         self.engine = engine
@@ -48,6 +49,18 @@ class BackupSolver:
         self.days = engine.days
         self.members = engine.members
         self.target = cfg.quota(engine.days_in_month)
+        self.quota_ignore = cfg.backup_quota_ignore
+        self.consecutive_ignore = cfg.backup_consecutive_ignore
+        self.report_threshold = cfg.backup_consecutive_report_threshold
+        # 日曜・祝日の予備を年間で均等にする
+        self.holiday_days = [d for d in engine.days if engine.is_red_day(d)]
+        self.holiday_history = dict(holiday_history or {})
+        self.holiday_pool = [
+            n for n in self.members if n not in cfg.backup_holiday_fairness_ignore
+        ]
+        self.w_holiday_fair = float(
+            cfg.backup.get("weights", {}).get("holiday_fairness", 400)
+        )
 
         conf = cfg.backup
         w = conf.get("weights", {})
@@ -130,10 +143,27 @@ class BackupSolver:
             cost += self.tier_cost[(name, day)]
 
         for name, count in counts.items():
+            if name in self.quota_ignore:
+                continue  # 回数の目標を見ない人（自動確定の日が多いため）
             cost += self.w_quota * (count - self.target.get(name, 0)) ** 2
+
+        # 日曜・祝日の予備を年間で均等に（これまでの実績を含めて評価する）
+        if self.w_holiday_fair and self.holiday_pool and self.holiday_days:
+            totals = {
+                n: self.holiday_history.get(n, 0)
+                for n in self.holiday_pool
+            }
+            for day in self.holiday_days:
+                name = assignment.get(day)
+                if name in totals:
+                    totals[name] += 1
+            mean = sum(totals.values()) / len(totals)
+            cost += self.w_holiday_fair * sum((v - mean) ** 2 for v in totals.values())
 
         # 待機と予備を合算した連続日数
         for name, days in self.combined_days(assignment).items():
+            if name in self.consecutive_ignore:
+                continue  # 連続を見ない人
             limit = self.max_run.get(name, 2)
             run = 1
             for earlier, later in zip(days, days[1:]):
@@ -207,20 +237,32 @@ class BackupSolver:
             if not elig.ok:
                 out.append(f"{day:%m/%d} {name}: 予備不可の日に割当（{elig.reason}）")
         for name, days in self.combined_days(assignment).items():
-            limit = self.max_run.get(name, 2)
-            run, start = 1, days[0] if days else None
+            if not days:
+                continue
+            skip = name in self.consecutive_ignore
+            limit = self.report_threshold - 1 if skip else self.max_run.get(name, 2)
+            suffix = (
+                "（待機＋予備。相談してください）" if skip else f"（上限{limit}日）"
+            )
+            run, start = 1, days[0]
             for earlier, later in zip(days, days[1:]):
                 if (later - earlier).days == 1:
                     run += 1
                 else:
                     if run > limit:
-                        out.append(
-                            f"{name}: {start:%m/%d}から{run}日連続（上限{limit}日）"
-                        )
+                        out.append(f"{name}: {start:%m/%d}から{run}日連続{suffix}")
                     run, start = 1, later
-            if run > limit and start:
-                out.append(f"{name}: {start:%m/%d}から{run}日連続（上限{limit}日）")
+            if run > limit:
+                out.append(f"{name}: {start:%m/%d}から{run}日連続{suffix}")
         return out
+
+    def holiday_counts(self, assignment: dict[dt.date, str]) -> dict[str, int]:
+        counts = {n: 0 for n in self.members}
+        for day in self.holiday_days:
+            name = assignment.get(day)
+            if name:
+                counts[name] = counts.get(name, 0) + 1
+        return counts
 
     def collect_notes(self, assignment: dict[dt.date, str]) -> list[str]:
         out: list[str] = []
@@ -237,6 +279,8 @@ class BackupSolver:
                     + "、".join(f"{d:%m/%d}={n}" for d, n in sorted(self.fixed.items()))
                 )
         for name, days in self.combined_days(assignment).items():
+            if name in self.consecutive_ignore:
+                continue
             runs = [
                 f"{a:%m/%d}-{b:%m/%d}"
                 for a, b in zip(days, days[1:])
@@ -258,5 +302,6 @@ def solve_backup(
     engine: RuleEngine,
     primary: dict[dt.date, str],
     fixed: dict[dt.date, str] | None = None,
+    holiday_history: dict[str, int] | None = None,
 ) -> BackupSolution:
-    return BackupSolver(cfg, engine, primary, fixed).solve()
+    return BackupSolver(cfg, engine, primary, fixed, holiday_history).solve()

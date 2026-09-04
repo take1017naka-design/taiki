@@ -99,3 +99,44 @@ def test_backup_workbook_has_the_same_format(rosters, tmp_path):
     assert ws["A1"].value == f"{YEAR}年{MONTH}月　カテ予備待機表"
     assert ws.page_setup.orientation == "landscape"
     assert wb["一覧"]["D1"].value == "待機者"   # 待機者の列が入る
+
+
+def test_history_records_and_resets(tmp_path):
+    """日曜・祝日の予備の実績を月ごとに記録し、同じ月は置き換える。"""
+    from duty_roster.history import History
+
+    path = tmp_path / "history.json"
+    history = History.load(path)
+
+    def is_sunday(day):
+        return day.weekday() == 6
+
+    august = {dt.date(2026, 8, d): "担当B" for d in (2, 9)}
+    history.record_holiday_backup(2026, 8, august, is_sunday)
+    history.save()
+
+    reloaded = History.load(path)
+    assert reloaded.holiday_backup_totals() == {"担当B": 2}
+    assert reloaded.recorded_months() == ["2026-08"]
+
+    # 同じ月を作り直しても二重に数えない
+    reloaded.record_holiday_backup(2026, 8, {dt.date(2026, 8, 2): "担当C"}, is_sunday)
+    assert reloaded.holiday_backup_totals() == {"担当C": 1}
+
+    # 対象月を除いた集計（その月を組み直すときに使う）
+    reloaded.record_holiday_backup(2026, 9, {dt.date(2026, 9, 6): "担当D"}, is_sunday)
+    assert reloaded.holiday_backup_totals(exclude_month=(2026, 9)) == {"担当C": 1}
+
+
+def test_holiday_backup_uses_the_history(rosters):
+    """通算回数が少ない人が、日曜・祝日の予備に選ばれやすくなる。"""
+    engine, primary, _ = rosters
+    holidays = [d for d in engine.days if engine.is_red_day(d)]
+    assert holidays
+
+    loaded = {n: 10 for n in engine.members}
+    light = CFG.weekend_pool[0]
+    loaded[light] = 0
+
+    biased = solve_backup(CFG, engine, primary.assignment, None, loaded)
+    assert light in [biased.assignment[d] for d in holidays]

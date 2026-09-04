@@ -11,6 +11,7 @@ from pathlib import Path
 from .config import ConfigError, load_config, normalize_name, parse_day
 from .rules import WEEKDAY_JP, RuleEngine
 from .backup import solve_backup
+from .history import History
 from .solver import solve
 from .sample import build_sample
 from .template import build_config_text
@@ -54,6 +55,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     gen.add_argument("--no-backup", action="store_true", help="予備待機表を作らない")
     gen.add_argument(
+        "--no-history",
+        action="store_true",
+        help="日曜・祝日の予備の実績を記録しない（試しに作るときに使う）",
+    )
+    gen.add_argument("--history", help="実績ファイルの場所（既定は設定の history.path）")
+    gen.add_argument(
         "-o",
         "--output",
         help="出力先。ファイル名でもフォルダでも可。省略時は設定の output.directory を使う",
@@ -69,6 +76,11 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("-o", "--output", default="config/roster.yaml", help="出力先 YAML")
     init.add_argument("--names", help="対象者の姓をカンマ区切りで指定（省略時は勤務表から検出）")
     init.add_argument("--force", action="store_true", help="既存ファイルを上書きする")
+
+    hist = sub.add_parser("history", help="日曜・祝日の予備の実績を見る／消す")
+    hist.add_argument("-c", "--config", default="config/roster.yaml", help="設定ファイル")
+    hist.add_argument("--path", help="実績ファイルの場所")
+    hist.add_argument("--reset", action="store_true", help="実績を消して最初からにする")
 
     smp = sub.add_parser("sample", help="動作確認用のダミー勤務表を作る")
     smp.add_argument("-m", "--month", type=parse_month, required=True, help="対象年月（例 2026-08）")
@@ -193,7 +205,19 @@ def _make_backup(args, cfg, engine, solution, notes, year, month) -> list[str]:
     fixed_backup = parse_fixed(
         getattr(args, "fix_backup", None), cfg, year, month, source=cfg.fixed_backup_assignments
     )
-    backup = solve_backup(cfg, engine, solution.assignment, fixed_backup)
+    history_path = Path(args.history).expanduser() if args.history else cfg.history_path
+    use_history = cfg.history_enabled and not args.no_history
+    history = History.load(history_path)
+    past = history.holiday_backup_totals(exclude_month=(year, month)) if use_history else {}
+    if past:
+        print(
+            "\nこれまでの日曜・祝日の予備（"
+            + "・".join(history.recorded_months())
+            + "）: "
+            + " ".join(f"{n}{c}" for n, c in sorted(past.items()))
+        )
+
+    backup = solve_backup(cfg, engine, solution.assignment, fixed_backup, past)
 
     print(f"\n{year}年{month}月 予備待機表")
     print("-" * 42)
@@ -211,6 +235,26 @@ def _make_backup(args, cfg, engine, solution, notes, year, month) -> list[str]:
     print("-" * 42)
     quota = cfg.quota(engine.days_in_month)
     print("予備回数: " + "  ".join(f"{n}{backup.counts[n]}/{quota.get(n, 0)}" for n in engine.members))
+
+    solver_view = __import__("duty_roster.backup", fromlist=["BackupSolver"]).BackupSolver(
+        cfg, engine, solution.assignment, fixed_backup, past
+    )
+    holiday_counts = solver_view.holiday_counts(backup.assignment)
+    pool = [n for n in engine.members if n not in cfg.backup_holiday_fairness_ignore]
+    print(
+        "日曜・祝日の予備（今月／通算）: "
+        + " ".join(
+            f"{n}{holiday_counts.get(n, 0)}/{past.get(n, 0) + holiday_counts.get(n, 0)}"
+            for n in pool
+        )
+    )
+
+    if use_history:
+        history.record_holiday_backup(
+            year, month, backup.assignment, engine.is_red_day
+        )
+        history.save()
+        print(f"実績を記録しました: {history.path}")
 
     for label, items in (("メモ", backup.notes), ("ルール違反・要確認", backup.violations)):
         if items:
@@ -317,6 +361,32 @@ def cmd_init_config(args) -> int:
     return 0
 
 
+def cmd_history(args) -> int:
+    cfg = load_config(args.config)
+    path = Path(args.path).expanduser() if args.path else cfg.history_path
+    history = History.load(path)
+
+    if args.reset:
+        if not path.exists():
+            print(f"実績ファイルはまだありません: {path}")
+            return 0
+        path.unlink()
+        print(f"実績を消しました: {path}")
+        print("次に作る月から、日曜・祝日の予備の回数を数え直します。")
+        return 0
+
+    months = history.recorded_months()
+    if not months:
+        print(f"記録はまだありません（{path}）")
+        return 0
+    print(f"記録のある月: {'、'.join(months)}")
+    totals = history.holiday_backup_totals()
+    print("日曜・祝日の予備の通算回数:")
+    for name in sorted(totals, key=lambda n: (-totals[n], n)):
+        print(f"  {name}: {totals[name]}")
+    return 0
+
+
 def cmd_sample(args) -> int:
     year, month = args.month
     path = build_sample(args.output, year, month)
@@ -332,6 +402,7 @@ def main(argv: list[str] | None = None) -> int:
         "generate": cmd_generate,
         "check": cmd_check,
         "init-config": cmd_init_config,
+        "history": cmd_history,
         "sample": cmd_sample,
     }
     try:

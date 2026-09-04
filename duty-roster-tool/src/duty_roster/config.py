@@ -139,16 +139,30 @@ DEFAULTS: dict[str, Any] = {
         "forced_anchor_for_dependents": True,
         # 待機がこの人の日は、予備にこの人たちを入れない（待機者 -> 予備不可の一覧）
         "forbidden_pairs": {},
+        # 日曜・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない。
+        # 予備は日曜・祝日も8名全員が対象。
+        "anchor_rule_on_holidays": False,
+        # 回数の目標を見ない人（バックアップ役は自動確定の日が多いため）
+        "quota_ignore": [],
+        # 連続日数を見ない人（自動確定の日が多く、連続を避けようがないため）。
+        # 上限では止めないが、consecutive_report_threshold 日以上になったら報告する。
+        "consecutive_ignore": [],
+        "consecutive_report_threshold": 4,
+        # 日曜・祝日の予備を年間で均等にする。ここに書いた人は対象外。
+        "holiday_fairness_ignore": [],
         # 待機＋予備を合算した連続日数の上限
         "max_run_default": 2,
         "max_run_exceptions": {},
         "weights": {
             "quota_deviation": 250,   # 目標回数からのズレ（2乗あたり）
             "consecutive": 1500,      # 合算して連日になる1件あたり
+            "holiday_fairness": 400,  # 日曜・祝日の予備の年間の偏り（2乗あたり）
             "violation": 1_000_000,   # ハード制約違反
         },
         "search": {"restarts": 12, "iterations": 4000},
     },
+    # 月をまたいだ実績の記録（日曜・祝日の予備を年間で均等にするために使う）
+    "history": {"enabled": True, "path": "config/history.json"},
     # 先に決まっている担当。ルールに関係なくこのとおり入れる。
     #   fixed_assignments:
     #     2026-10-05: 坂本
@@ -342,6 +356,38 @@ class Config:
             for k, values in (self.backup.get("forbidden_pairs") or {}).items()
         }
 
+    @property
+    def backup_quota_ignore(self) -> set[str]:
+        return {str(n) for n in (self.backup.get("quota_ignore") or [])}
+
+    @property
+    def backup_consecutive_ignore(self) -> set[str]:
+        return {str(n) for n in (self.backup.get("consecutive_ignore") or [])}
+
+    @property
+    def backup_consecutive_report_threshold(self) -> int:
+        return int(self.backup.get("consecutive_report_threshold", 4))
+
+    @property
+    def backup_holiday_fairness_ignore(self) -> set[str]:
+        return {str(n) for n in (self.backup.get("holiday_fairness_ignore") or [])}
+
+    @property
+    def history_enabled(self) -> bool:
+        return bool((self.raw.get("history") or {}).get("enabled", True))
+
+    @property
+    def history_path(self) -> Path:
+        raw = (self.raw.get("history") or {}).get("path") or "config/history.json"
+        path = Path(os.path.expandvars(str(raw))).expanduser()
+        if not path.is_absolute() and self.path is not None:
+            path = self.path.parent / path.name
+        return path
+
+    @property
+    def backup_anchor_rule_on_holidays(self) -> bool:
+        return bool(self.backup.get("anchor_rule_on_holidays", False))
+
     def backup_max_run(self, name: str) -> int:
         exceptions = self.backup.get("max_run_exceptions") or {}
         return int(exceptions.get(name, self.backup.get("max_run_default", 2)))
@@ -522,6 +568,12 @@ def validate(cfg: Config) -> None:
     for primary, blocked in pairs.items():
         check(f"backup_roster.forbidden_pairs[{primary}]", sorted(blocked))
     check("backup_roster.max_run_exceptions", list(cfg.backup.get("max_run_exceptions") or {}))
+    check("backup_roster.quota_ignore", sorted(cfg.backup_quota_ignore))
+    check("backup_roster.consecutive_ignore", sorted(cfg.backup_consecutive_ignore))
+    check(
+        "backup_roster.holiday_fairness_ignore",
+        sorted(cfg.backup_holiday_fairness_ignore),
+    )
 
     table = cfg.raw["quota_by_month_length"]
     if not table:

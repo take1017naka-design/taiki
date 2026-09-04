@@ -117,6 +117,17 @@ backup_roster:
   enabled: true
   # 待機が backup_dependents（担当G・担当H）の日は、必ず backup_anchor（担当A）が予備
   forced_anchor_for_dependents: true
+  # 日曜・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない
+  anchor_rule_on_holidays: false
+  # 予備の回数は目標を見ない人（自動確定の日が多いバックアップ役）
+  quota_ignore: [担当A]
+  # 予備の連続日数を見ない人（自動確定の日が多く、避けようがないため）
+  # 連続日数を見ない人（自動確定の日が多く避けようがないため）。
+  # 上限では止めないが、下の日数以上になったら確認事項に出す。
+  consecutive_ignore: [担当A]
+  consecutive_report_threshold: 4
+  # 日曜・祝日の予備を年間で均等にする。ここに書いた人は対象外。
+  holiday_fairness_ignore: [担当A]
   # 待機がこの人の日は、予備にこの人たちを入れない
   forbidden_pairs:
     担当C: [担当G]
@@ -128,10 +139,17 @@ backup_roster:
   weights:
     quota_deviation: 250   # 目標回数からのズレ（2乗あたり）
     consecutive: 1500      # 待機と予備を合算して連日になる1件あたり
+    holiday_fairness: 400  # 日曜・祝日の予備の年間の偏り（2乗あたり）
     violation: 1000000     # ハード制約違反
   search:
     restarts: 12
     iterations: 4000
+
+# 月をまたいだ実績の記録（日曜・祝日の予備を年間で均等にするために使う）。
+# 氏名を含むのでリポジトリには入れない（.gitignore 済み）。
+history:
+  enabled: true
+  path: config/history.json
 
 # 先に決まっている担当（ルールに関係なくこのとおり入れる）。
 # 毎月変わるものは --fix で渡すほうが手軽。

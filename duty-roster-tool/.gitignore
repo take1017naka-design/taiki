@@ -1,5 +1,6 @@
 # 氏名・勤務内容を含むファイルは絶対にコミットしない
 config/roster.yaml
+config/history.json
 config/*.local.yaml
 data/
 out/

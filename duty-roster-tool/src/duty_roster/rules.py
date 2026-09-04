@@ -191,7 +191,9 @@ class RuleEngine:
             return "×"
         return "△" if elig.conditional else "○"
 
-    def base_eligibility(self, name: str, day: dt.date) -> Eligibility:
+    def base_eligibility(
+        self, name: str, day: dt.date, *, apply_anchor_rule: bool = True
+    ) -> Eligibility:
         """待機・予備に共通する可否（本人の事情と勤務表から決まるぶん）。"""
         # 0. 設定での手動指定（勤務表から読み取れない事情）
         manual = self.manual_unavailable.get(name, {})
@@ -213,16 +215,33 @@ class RuleEngine:
 
         # 3.③ バックアップ役が不在の日は従属者も不可
         anchor = self.cfg.backup_anchor
-        if anchor and name in self.cfg.backup_dependents and self.is_absent(anchor, day):
+        if (
+            apply_anchor_rule
+            and anchor
+            and name in self.cfg.backup_dependents
+            and self.is_absent(anchor, day)
+        ):
             return Eligibility(False, f"{anchor}が不在（バックアップ不可）")
 
         return Eligibility(True)
 
     def backup_eligibility(self, name: str, day: dt.date) -> Eligibility:
-        """予備待機の可否。土日の担当プール制限と日曜の条件は適用しない。"""
+        """予備待機の可否。
+
+        待機表と違うのは次の3点。
+
+        * 土日の担当プール制限を適用しない（8名全員が対象）
+        * 日曜の追加条件（1人1回・翌日不在・手術室・前日不在）を適用しない
+        * 日曜・祝日は「バックアップ役が不在なら依存2名も不可」を適用しない
+        """
         key = (name, day)
         if key not in self._backup_cache:
-            self._backup_cache[key] = self.base_eligibility(name, day)
+            apply_anchor = not (
+                self.is_red_day(day) and not self.cfg.backup_anchor_rule_on_holidays
+            )
+            self._backup_cache[key] = self.base_eligibility(
+                name, day, apply_anchor_rule=apply_anchor
+            )
         return self._backup_cache[key]
 
     def backup_eligible(self, name: str, day: dt.date) -> bool:
