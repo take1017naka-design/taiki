@@ -177,6 +177,9 @@ DEFAULTS: dict[str, Any] = {
             # 合算して連日になる1件あたり。均等配分と釣り合う重さにしてある。
             "consecutive": 4000,
             "holiday_fairness": 400,  # 日曜・祝日の予備の年間の偏り（2乗あたり）
+            # 日曜・祝日の予備の「その月内」の偏り（2乗あたり）。
+            # 各自1日ずつになるように、他のソフト条件より重くしてある。
+            "holiday_month_even": 12000,
             "holiday_consult": 2000,  # 祝日に holiday_consult の人を充てる
             "sunday_repeat": 6000,    # 日曜の予備に同じ人を月内で2回以上使う
             "violation": 1_000_000,   # ハード制約違反

@@ -215,6 +215,23 @@ def cmd_generate(args) -> int:
     return 1 if violations else 0
 
 
+def _backup_availability_view(engine):
+    """可否一覧の表示用。平日で翌日が手術室の人も△として見せる。"""
+    from .rules import SAT, SUN, Eligibility
+
+    def view(name, day):
+        elig = engine.backup_eligibility(name, day)
+        if elig.ok and not elig.conditional and day.weekday() not in (SAT, SUN):
+            label = engine.next_day_last_resort_label(name, day)
+            if label:
+                return Eligibility(
+                    True, penalty=1.0, note=f"{label}（他に組めない場合の候補）"
+                )
+        return elig
+
+    return view
+
+
 def _make_backup(args, cfg, engine, solution, notes, year, month):
     """予備待機表を作る。戻り値は (要確認事項, 割り当て)。"""
     fixed_backup = parse_fixed(
@@ -293,7 +310,7 @@ def _make_backup(args, cfg, engine, solution, notes, year, month):
         title="カテ予備待機表",
         partner=solution.assignment,
         partner_label="待機者",
-        availability_fn=engine.backup_eligibility,
+        availability_fn=_backup_availability_view(engine),
         candidates_fn=lambda day: [
             n for n in engine.members if engine.backup_eligible(n, day)
         ],

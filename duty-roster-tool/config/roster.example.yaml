@@ -154,7 +154,8 @@ backup_roster:
     even_quota_deviation: 3000       # 均等配分のときの平均からのズレ（2乗あたり）
     ignored_extra_day: 2500          # 回数を見ない人に自動確定以外の日を充てる
     consecutive: 4000      # 待機と予備を合算して連日になる1件あたり
-    holiday_fairness: 400  # 日曜・祝日の予備の年間の偏り（2乗あたり）
+    holiday_fairness: 400     # 日曜・祝日の予備の年間の偏り（2乗あたり）
+    holiday_month_even: 12000 # 日曜・祝日の予備の月内の偏り（各自1日ずつに近づける）
     holiday_consult: 2000  # 祝日に holiday_consult の人を充てる
     sunday_repeat: 6000    # 日曜の予備に同じ人を月内で2回以上使う
     violation: 1000000     # ハード制約違反

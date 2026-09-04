@@ -151,6 +151,24 @@ class RuleEngine:
             )
         return self._all_absent_cache[day]
 
+    def next_day_is_operating_room(self, name: str, day: dt.date) -> bool:
+        """翌日の勤務が手術室（空白・OP・アーム）だけか。"""
+        duties = self.next_day_duties(name, day)
+        return not [d for d in duties if d not in self.sun_blocked_next_duties]
+
+    def next_day_last_resort_label(self, name: str, day: dt.date) -> str | None:
+        """翌日が優先順位の最後の段のとき、その内容を表す文言。該当なしは None。"""
+        if not self.next_day_is_operating_room(name, day):
+            return None
+        nxt = day + dt.timedelta(days=1)
+        duties = self.next_day_duties(name, day)
+        if duties:
+            return f"翌日が手術室勤務（{'/'.join(duties)}）"
+        codes = self.codes(name, nxt)
+        if codes:
+            return f"翌日が休み（{'/'.join(codes)}）"
+        return "翌日が空白（手術室勤務）"
+
     def works_on(self, name: str, day: dt.date) -> bool:
         """その日に実際の勤務があるか（記号に勤務内容が入っているか）。"""
         return bool(self.duty_codes(name, day))

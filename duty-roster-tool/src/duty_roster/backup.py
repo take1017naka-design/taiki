@@ -68,6 +68,9 @@ class BackupSolver:
         self.w_holiday_fair = float(
             cfg.backup.get("weights", {}).get("holiday_fairness", 400)
         )
+        self.w_holiday_month = float(
+            cfg.backup.get("weights", {}).get("holiday_month_even", 12000)
+        )
 
         conf = cfg.backup
         w = conf.get("weights", {})
@@ -217,6 +220,16 @@ class BackupSolver:
                     seen[name] = seen.get(name, 0) + 1
             cost += self.w_sunday_repeat * sum(c - 1 for c in seen.values() if c > 1)
 
+        # 日曜・祝日の予備を、その月内でも各自1日ずつに近づける
+        if self.w_holiday_month and self.holiday_pool and self.holiday_days:
+            month = {n: 0 for n in self.holiday_pool}
+            for day in self.holiday_days:
+                name = assignment.get(day)
+                if name in month:
+                    month[name] += 1
+            mean = sum(month.values()) / len(month)
+            cost += self.w_holiday_month * sum((v - mean) ** 2 for v in month.values())
+
         # 日曜・祝日の予備を年間で均等に（これまでの実績を含めて評価する）
         if self.w_holiday_fair and self.holiday_pool and self.holiday_days:
             totals = {
@@ -365,9 +378,16 @@ class BackupSolver:
     def collect_notes(self, assignment: dict[dt.date, str]) -> list[str]:
         out: list[str] = []
         for day in self.days:
-            elig = self.engine.backup_eligibility(assignment[day], day)
+            name = assignment[day]
+            elig = self.engine.backup_eligibility(name, day)
             if elig.conditional:
-                out.append(f"{day:%m/%d} {assignment[day]}: {elig.note}")
+                out.append(f"{day:%m/%d} {name}: {elig.note}")
+            elif day not in self.forced and day.weekday() not in (SAT, SUN):
+                # 平日で、第4優先までに候補がいなかった日
+                # （自動確定の日は選びようがないので除く）
+                label = self.engine.next_day_last_resort_label(name, day)
+                if label:
+                    out.append(f"{day:%m/%d} {name}: {label}（他に組めない場合の候補）")
         if self.forced:
             forced_by_rule = {d: n for d, n in self.forced.items() if d not in self.fixed}
             if forced_by_rule:
