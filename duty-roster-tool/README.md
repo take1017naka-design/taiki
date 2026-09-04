@@ -313,10 +313,17 @@ duty-roster generate -s 202610.xlsx --no-joint
   **祝日は入れるが「要相談」**として確認事項に出す（`holiday_consult`）
 
 ```bash
-duty-roster history                # 通算回数を見る
-duty-roster history --reset        # 実績を消して最初から数え直す
+duty-roster history                     # 通算回数を見る
+duty-roster history --history <file>    # 別の場所の実績ファイルを見る
+duty-roster history --reset             # 実績を消して最初から数え直す
 duty-roster generate ... --no-history   # 試しに作る（実績に残さない）
+duty-roster generate ... --history <file>  # 実績ファイルの場所を指定して作る
 ```
+
+実績ファイル（既定 `config/history.json`）は**氏名を含むのでリポジトリに入れません**
+（`.gitignore` 済み）。別の環境で作るときは、このファイルを持ち回って
+`--history` で渡してください。渡さなければ通算はゼロから数え直しになります
+（その月の中で各自1日ずつにする調整は、実績が無くても効きます）。
 
 予備を先に決めたい日は `--fix-backup 5=坂本` のように指定します。
 予備待機表が不要なら `--no-backup`、恒久的に止めるなら `backup_roster.enabled: false`。

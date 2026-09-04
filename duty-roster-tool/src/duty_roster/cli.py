@@ -87,7 +87,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     hist = sub.add_parser("history", help="日曜・祝日の予備の実績を見る／消す")
     hist.add_argument("-c", "--config", default="config/roster.yaml", help="設定ファイル")
-    hist.add_argument("--path", help="実績ファイルの場所")
+    hist.add_argument(
+        "--path", "--history", dest="path", help="実績ファイルの場所"
+    )
     hist.add_argument("--reset", action="store_true", help="実績を消して最初からにする")
 
     smp = sub.add_parser("sample", help="動作確認用のダミー勤務表を作る")
