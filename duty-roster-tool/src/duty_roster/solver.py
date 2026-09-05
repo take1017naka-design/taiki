@@ -91,9 +91,15 @@ class Solver:
                 )
                 if day.weekday() == SUN:
                     base *= self.sunday_tier_multiplier
-                elif day.weekday() <= THU and self._is_last_resort(tier):
+                elif (
+                    day.weekday() <= THU
+                    and self._is_last_resort(tier)
+                    and not engine.is_long_weekend_start(day)
+                ):
                     # 月〜木の最後の段（翌日が手術室・休み）は「他に組めない場合」だけ。
                     # 連日・間隔より重くして、上の段の候補がいる限り使わないようにする。
+                    # ただし翌日が祝日・全員不在（連休）の日は、翌日の勤務が
+                    # ほぼ全員「休み」になるだけなので、この上乗せはしない。
                     base *= self.w_last_resort
                 if holiday_workers and name not in holiday_workers:
                     base += self.w_holiday_not_working

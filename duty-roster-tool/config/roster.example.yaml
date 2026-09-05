@@ -108,7 +108,7 @@ weights:
   consecutive: 1500          # 連日待機
   short_gap: 400             # 間隔が min_gap_days 未満（中1日など）
   week_overload: 800         # 同じ週に max_per_week を超えて入る
-  holiday_not_working: 3000  # 祝日に、当日出勤者がいるのに他の人を充てる
+  holiday_not_working: 12000 # 祝日に、当日出勤者がいるのに他の人を充てる（連日回避より重い）
   sunday_prev_absent: 1300   # 日曜に「前日(土)不在」の候補(△)を充てる
   sunday_next_operating_room: 2500  # 日曜に「翌日(月)が手術室勤務」の候補(△)を充てる
   sunday_tier_multiplier: 20 # 日曜の優先順位を平日より重く扱う倍率（第2優先=60x20=1200）
