@@ -412,6 +412,13 @@ class Solver:
                 label = self.engine.next_day_last_resort_label(name, day)
                 if label:
                     out.append(f"{day:%m/%d} {name}: {label}（他に組めない場合の候補）")
+            workers = self.engine.holiday_workers(day)
+            if workers and name not in workers:
+                # 祝日は当日出勤者を優先する決まりなので、外れた日は理由を出す
+                out.append(
+                    f"{day:%m/%d}(祝) {name}: 当日出勤者は"
+                    f"{'・'.join(workers)}ですが、都合がつかず別の人にしています"
+                )
         return out
 
     # -- 検証 --------------------------------------------------------------

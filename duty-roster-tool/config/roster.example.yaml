@@ -39,6 +39,9 @@ roles:
   weekend_pool: [担当B, 担当C, 担当D, 担当E, 担当F]
   # 日曜は weekend_pool から1人1回ずつ
   sunday_once_each: true
+  # 翌日にこの記号があると、その人は待機・予備とも不可にする
+  unavailable_if_next_day: {}
+  #  担当B: ["アーム"]
   # 対象者全員が不在の日（日曜・祝日の一斉「公」など）は、不在を理由とする
   # 待機不可を解除する。赤字・黄色セル・土日プール・バックアップ役の条件は残る。
   all_absent_exception: true

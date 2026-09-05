@@ -58,6 +58,7 @@ class RuleEngine:
         self.operating_room_judge = cfg.operating_room_judge_codes
         self.operating_room_exempt = cfg.operating_room_exempt_members
         self.operating_room_skip_weekdays = cfg.operating_room_skip_weekdays
+        self.unavailable_if_next_day = cfg.unavailable_if_next_day
         self.operating_room_exception_tier = cfg.operating_room_exception_tier
         self.unlisted_code_tier = cfg.unlisted_code_tier
         self.manual_unavailable = cfg.manual_unavailable
@@ -187,6 +188,17 @@ class RuleEngine:
             return f"翌日が手術室勤務（{'/'.join(codes)}）"
         return "翌日が空白（手術室勤務）"
 
+    def next_day_blocking_codes(self, name: str, day: dt.date) -> list[str]:
+        """翌日の勤務のうち、その人を待機・予備とも不可にする記号。
+
+        設定の `roles.unavailable_if_next_day`（例: 坂本は翌日アームなら不可）。
+        """
+        wanted = self.unavailable_if_next_day.get(name)
+        if not wanted:
+            return []
+        codes = self.codes(name, day + dt.timedelta(days=1))
+        return [c for c in codes if c in wanted]
+
     def next_day_is_day_off(self, name: str, day: dt.date) -> bool:
         """翌日が休み（勤務内容がなく、公・有・夏 などの記号だけ）か。"""
         nxt = day + dt.timedelta(days=1)
@@ -241,6 +253,11 @@ class RuleEngine:
         manual = self.manual_unavailable.get(name, {})
         if day in manual:
             return Eligibility(False, f"手動で待機不可に指定（{manual[day]}）")
+
+        # 0'. 翌日の勤務による不可（例: 坂本は翌日アームなら不可）
+        blocked = self.next_day_blocking_codes(name, day)
+        if blocked:
+            return Eligibility(False, f"翌日が{'/'.join(blocked)}")
 
         # 3.② 黄色セル（本人希望）
         if self.is_yellow(name, day):
@@ -297,10 +314,17 @@ class RuleEngine:
         return self._backup_cache[key]
 
     def request_only_eligibility(self, name: str, day: dt.date) -> Eligibility:
-        """本人希望（赤字・黄色セル）と手動指定だけで可否を決める。"""
+        """本人希望（赤字・黄色セル）と手動指定だけで可否を決める。
+
+        翌日の勤務による不可（`unavailable_if_next_day`）はここでも適用する。
+        本人の翌日の業務によるものなので、予備でも外さない。
+        """
         manual = self.manual_unavailable.get(name, {})
         if day in manual:
             return Eligibility(False, f"手動で待機不可に指定（{manual[day]}）")
+        blocked = self.next_day_blocking_codes(name, day)
+        if blocked:
+            return Eligibility(False, f"翌日が{'/'.join(blocked)}")
         if self.is_yellow(name, day):
             return Eligibility(False, "黄色セル（本人希望）")
         if self.has_red_text(name, day):

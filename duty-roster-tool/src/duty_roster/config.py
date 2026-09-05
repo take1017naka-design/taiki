@@ -37,6 +37,10 @@ DEFAULTS: dict[str, Any] = {
         "weekend_pool": [],
         # 日曜は「この中から1人1回ずつ」
         "sunday_once_each": True,
+        # 翌日の勤務にこの記号があると、その人は待機・予備とも不可にする。
+        #   unavailable_if_next_day:
+        #     坂本: ["アーム"]
+        "unavailable_if_next_day": {},
         # 対象者全員が不在の日（日曜・祝日の一斉「公」など）は、
         # 不在を理由とする待機不可を解除する。解除しても赤字・黄色セル・
         # 土日プール・バックアップ役の条件は効いたまま。
@@ -378,6 +382,15 @@ class Config:
     @property
     def min_gap_days(self) -> int:
         return int(self.raw["roles"].get("min_gap_days", 1))
+
+    @property
+    def unavailable_if_next_day(self) -> dict[str, set[str]]:
+        """翌日にこの記号があると待機・予備とも不可にする（人ごと）。"""
+        raw = self.raw["roles"].get("unavailable_if_next_day", {}) or {}
+        return {
+            normalize_name(name): {normalize_code(c) for c in codes if c}
+            for name, codes in raw.items()
+        }
 
     @property
     def weekend_pool(self) -> list[str]:

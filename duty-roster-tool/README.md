@@ -68,6 +68,17 @@ python -m duty_roster generate -s data/202608.xlsx -c config/roster.yaml
 
 ### 待機不可の判定（全曜日共通）
 
+**翌日の勤務による不可**（`roles.unavailable_if_next_day`）。翌日にその記号があると、
+その人は待機・予備とも不可になります。本人の翌日の業務によるものなので、
+`always_available` に書いた人にも効きます。
+
+```yaml
+roles:
+  unavailable_if_next_day:
+    担当B: ["アーム"]   # 翌日にアームがある日は待機・予備とも不可
+```
+
+
 | 条件 | 扱い |
 |---|---|
 | `公` `有` `夏` `リ` `出` `有/公` | 色に関わらず不在 → 待機不可（**黒字でも不可**） |

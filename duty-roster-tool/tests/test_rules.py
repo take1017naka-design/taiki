@@ -362,3 +362,22 @@ def test_unknown_codes_are_reported():
     unknown = engine.unknown_codes()
     assert set(unknown) == {"心カテ待機"}
     assert sorted(n for n, _ in unknown["心カテ待機"]) == ["担当D", "担当E"]
+
+
+def test_next_day_code_can_block_a_person():
+    """翌日にこの記号があると待機・予備とも不可にできる（例: 翌日アーム）。"""
+    engine = build_engine(
+        {
+            ("担当C", d(4)): [Cell(text="ME")],
+            ("担当C", d(5)): [Cell(text="O"), Cell(text="アーム")],
+            ("担当D", d(4)): [Cell(text="ME")],
+            ("担当D", d(5)): [Cell(text="O"), Cell(text="アーム")],
+        }
+    )
+    engine.unavailable_if_next_day = {"担当C": {"アーム"}}
+    assert engine.next_day_blocking_codes("担当C", d(4)) == ["アーム"]
+    assert not engine.eligibility("担当C", d(4)).ok
+    assert not engine.backup_eligibility("担当C", d(4)).ok
+    # 指定していない人には効かない
+    assert engine.next_day_blocking_codes("担当D", d(4)) == []
+    assert engine.eligibility("担当D", d(4)).ok
