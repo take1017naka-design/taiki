@@ -1,0 +1,55 @@
+#!/bin/sh
+#
+# 個人情報を含みやすいファイルの誤コミットを止めるフック。
+# 有効化: git config core.hooksPath .githooks
+#
+# どうしても必要な場合のみ: git commit --no-verify
+
+blocked=""
+
+# 1) 拡張子によるブロック（sample_data/ 配下と sample_/dummy_/test_ 接頭辞は除外）
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+  case "$f" in
+    sample_data/*) continue ;;
+    */sample_*|sample_*|*/dummy_*|dummy_*|*/test_*|test_*) continue ;;
+  esac
+  case "$f" in
+    *.csv|*.tsv|*.xls|*.xlsx|*.xlsm|*.xlsb|*.mdb|*.accdb|*.sav|*.dta|\
+    *.parquet|*.db|*.sqlite|*.sqlite3|*.dcm|*.DCM|*.nii|*.nii.gz|\
+    *.pdf|*.docx|*.pptx|*.pem|*.key)
+      blocked="$blocked  [データファイル] $f\n" ;;
+  esac
+  case "$f" in
+    data/*|raw/*|private/*|secret/*)
+      blocked="$blocked  [データ用フォルダ] $f\n" ;;
+  esac
+done
+
+# 2) 内容によるブロック
+#    「語そのもの」ではなく「語 + 区切り + 値」を探す。
+#    ルールを説明する文章（例: 患者氏名を書かない）は通し、
+#    実際の値（例: 患者氏名: 山田太郎）だけを止める。
+keys='カルテ番号|カルテID|患者ID|患者氏名|保険証番号|被保険者番号|マイナンバー'
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+  case "$f" in
+    .githooks/*) continue ;;   # このフック自身のパターン定義を誤検知しない
+  esac
+  hit=$(git diff --cached -U0 --diff-filter=ACM -- "$f" \
+        | grep -E '^\+' \
+        | grep -E "($keys)[[:space:]]*[:=：＝][[:space:]]*[^[:space:]]" || true)
+  if [ -n "$hit" ]; then
+    blocked="$blocked  [個人情報らしき値] $f\n"
+  fi
+done
+
+if [ -n "$blocked" ]; then
+  printf '\n\033[31mコミットを中止しました。個人情報が含まれる可能性があります。\033[0m\n\n'
+  printf "$blocked"
+  printf '\n対応:\n'
+  printf '  - 実データは data/ に置く（Git 管理外です）\n'
+  printf '  - 動作確認用は sample_data/ に匿名化データを置く\n'
+  printf '  - 誤検知だと確認できた場合のみ: git commit --no-verify\n\n'
+  exit 1
+fi
+
+exit 0

@@ -1,0 +1,91 @@
+# =====================================================================
+#  個人情報・患者データ保護（最優先）
+#  ここに挙げたものは Git に載せない = GitHub にもクラウドにも出さない
+# =====================================================================
+
+# 実データ置き場（このフォルダの中身は一切コミットされません）
+data/
+
+# 個人情報を含みやすい作業フォルダ
+raw/
+private/
+secret/
+work/
+出力/
+患者/
+院内/
+
+# 表形式データ（電子カルテ・部門システムからの書き出しを想定）
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.xlsm
+*.xlsb
+*.accdb
+*.mdb
+*.sav
+*.dta
+*.parquet
+*.sqlite
+*.sqlite3
+*.db
+
+# 医用画像・波形
+*.dcm
+*.DCM
+*.nii
+*.nii.gz
+*.mha
+*.nrrd
+
+# 文書（同意書・報告書などが紛れ込みやすい）
+*.pdf
+*.docx
+*.pptx
+
+# ダミー/サンプルデータは明示的に許可（個人情報を含まないもののみ）
+!sample_data/**
+!**/sample_*.csv
+!**/dummy_*.csv
+!**/test_*.csv
+
+# 認証情報
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+
+# =====================================================================
+#  一般
+# =====================================================================
+# Windows / macOS
+Thumbs.db
+Desktop.ini
+~$*
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+build/
+*.log
+
+# エディタ
+.vscode/*
+!.vscode/settings.json.example
+.idea/
+
+# Claude Code のローカル個人設定（共有しない）
+.claude/settings.local.json
