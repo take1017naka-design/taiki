@@ -181,6 +181,7 @@ backup_roster:
     even_quota_prefer_more: 9000     # even_quota_prefer_more の人が少ないほうの日数になった
     ignored_extra_day: 9000          # 回数を見ない人に自動確定以外の日を充てる
     consecutive: 4000      # 待機と予備を合算して連日になる1件あたり
+    holiday_block_consecutive: 60000  # 連休（日曜・祝日が続く期間）の中で連日になる
     holiday_fairness: 400     # 日曜・祝日の予備の年間の偏り（2乗あたり）
     holiday_month_even: 12000 # 日曜・祝日の予備の月内の偏り（各自1日ずつに近づける）
     holiday_consult: 2000  # 祝日に holiday_consult の人を充てる

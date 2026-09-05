@@ -84,6 +84,8 @@ class BackupSolver:
         self.w_prefer_more = float(w.get("even_quota_prefer_more", 9000))
         self.w_ignored_extra = float(w.get("ignored_extra_day", 2500))
         self.w_consec = float(w.get("consecutive", 600))
+        # 連休（日曜・祝日が続く期間）の中での連日
+        self.w_holiday_block = float(w.get("holiday_block_consecutive", 60000))
         self.max_run = {n: cfg.backup_max_run(n) for n in self.members}
         self.forbidden = cfg.backup_forbidden_pairs
 
@@ -263,6 +265,18 @@ class BackupSolver:
             mean = sum(totals.values()) / len(totals)
             cost += self.w_holiday_fair * sum((v - mean) ** 2 for v in totals.values())
 
+        # 連休（日曜・祝日が連続する期間）の中での連日は避ける。
+        # 連続を見ない人にも適用する（休みが続く期間に2日続けて当てないため）。
+        if self.w_holiday_block:
+            for days in self.combined_days(assignment).values():
+                for earlier, later in zip(days, days[1:]):
+                    if (
+                        (later - earlier).days == 1
+                        and self.engine.is_red_day(earlier)
+                        and self.engine.is_red_day(later)
+                    ):
+                        cost += self.w_holiday_block
+
         # 待機と予備を合算した連続日数
         for name, days in self.combined_days(assignment).items():
             if name in self.consecutive_ignore:
@@ -386,6 +400,19 @@ class BackupSolver:
                     run, start = 1, later
             if run > limit:
                 out.append(f"{name}: {start:%m/%d}から{run}日連続{suffix}")
+
+        # 連休（日曜・祝日が続く期間）の中で連日になっていないか
+        for name, days in self.combined_days(assignment).items():
+            for earlier, later in zip(days, days[1:]):
+                if (
+                    (later - earlier).days == 1
+                    and self.engine.is_red_day(earlier)
+                    and self.engine.is_red_day(later)
+                ):
+                    out.append(
+                        f"{name}: 連休（日曜・祝日）の中で連日です"
+                        f"（{earlier:%m/%d}-{later:%m/%d}）"
+                    )
         return out
 
     def holiday_counts(self, assignment: dict[dt.date, str]) -> dict[str, int]:

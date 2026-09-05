@@ -2,7 +2,7 @@ import datetime as dt
 
 import pytest
 
-from duty_roster.backup import solve_backup
+from duty_roster.backup import BackupSolver, solve_backup
 from duty_roster.config import load_config
 from duty_roster.rules import RuleEngine
 from duty_roster.sample import build_sample
@@ -248,3 +248,49 @@ def test_history_can_be_imported_from_a_backup_roster(rosters, tmp_path):
             expected[name] = expected.get(name, 0) + 1
     assert counts == expected
     assert history.recorded_months() == [f"{YEAR}-{MONTH:02d}"]
+
+
+def test_no_consecutive_days_inside_a_holiday_block(rosters):
+    """連休（日曜・祝日が続く期間）の中では、同じ人を2日続けて当てない。"""
+    engine, primary, backup = rosters
+    for name in engine.members:
+        mine = sorted(
+            day
+            for day in engine.days
+            if name in (primary.assignment.get(day), backup.assignment.get(day))
+        )
+        for earlier, later in zip(mine, mine[1:]):
+            if (later - earlier).days != 1:
+                continue
+            assert not (
+                engine.is_red_day(earlier) and engine.is_red_day(later)
+            ), f"{name}: {earlier}-{later}"
+
+
+def test_holiday_block_consecutive_is_reported(tmp_path):
+    """連休の中で連日になったら、ルール違反として報告する。
+
+    2026年9月は 9/20(日)〜9/23(秋分の日) が連休になる。
+    """
+    year, month = 2026, 9
+    path = build_sample(tmp_path / "sep.xlsx", year, month)
+    engine = RuleEngine(CFG, read_schedule(path, year, month, CFG), year, month)
+    primary = solve(CFG, engine)
+    solver = BackupSolver(CFG, engine, primary.assignment)
+    reds = [d for d in engine.days if engine.is_red_day(d)]
+    pair = next(
+        (a, b)
+        for a, b in zip(reds, reds[1:])
+        if (b - a).days == 1 and primary.assignment[a] != primary.assignment[b]
+    )
+    a, b = pair
+    assignment = {d: solver.candidates(d)[0] for d in engine.days}
+    # わざと同じ人を連休の2日に置く
+    name = next(
+        n
+        for n in engine.members
+        if n not in (primary.assignment[a], primary.assignment[b])
+    )
+    assignment[a] = assignment[b] = name
+    found = [v for v in solver.collect_violations(assignment) if "連休" in v]
+    assert found, solver.collect_violations(assignment)

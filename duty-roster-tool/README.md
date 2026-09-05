@@ -305,6 +305,9 @@ duty-roster generate -s 202610.xlsx --no-joint
 - 待機がこの人の日は予備に入れない、という組み合わせを設定できる
   （`backup_roster.forbidden_pairs`）
 - **待機と予備を合算した**連続日数の上限（既定2日、`max_run_exceptions` で3日まで許す人を指定）
+- **連休（日曜・祝日が続く期間）の中では連日にしない**
+  （`weights.holiday_block_consecutive`）。連続を見ない人にも適用します。
+  避けられなかった場合は「確認事項」にルール違反として出ます
 - 回数は `quota_ignore` を除く**全員で均等**にする（`even_quota`）。
   バックアップ役には自動確定以外の日を極力入れない
 - 割り切れないとき（7人で24日なら3日と4日に分かれる）に、

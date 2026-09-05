@@ -212,6 +212,8 @@ DEFAULTS: dict[str, Any] = {
             "quota_deviation_priority": 40000,
             # 合算して連日になる1件あたり。均等配分と釣り合う重さにしてある。
             "consecutive": 4000,
+            # 連休（日曜・祝日が続く期間）の中での連日。ほぼ禁止に近い重み。
+            "holiday_block_consecutive": 60000,
             "holiday_fairness": 400,  # 日曜・祝日の予備の年間の偏り（2乗あたり）
             # 日曜・祝日の予備の「その月内」の偏り（2乗あたり）。
             # 各自1日ずつになるように、他のソフト条件より重くしてある。
