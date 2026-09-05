@@ -408,6 +408,14 @@ class Solver:
     def collect_conditional_notes(self, assignment: dict[dt.date, str]) -> list[str]:
         """条件付きで可の候補・最後の段を使った日を書き出す。"""
         out = []
+        # 先に決めた日はルール判定の対象外だが、可否が食い違うなら知らせる
+        for day in sorted(self.fixed):
+            elig = self.engine.eligibility(assignment[day], day)
+            if not elig.ok:
+                out.append(
+                    f"{day:%m/%d} {assignment[day]}: 指定された日ですが、"
+                    f"ルール上は待機不可です（{elig.reason}）"
+                )
         for day in self.open_days:
             name = assignment[day]
             elig = self.engine.eligibility(name, day)

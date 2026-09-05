@@ -252,3 +252,19 @@ def test_last_resort_tier_is_avoided_when_someone_better_is_free(tmp_path):
     normal = solver.tier_cost[(names[1], day)]
     assert last_resort > normal + CFG.weights["consecutive"]
     assert last_resort > normal + CFG.weights["short_gap"]
+
+
+def test_fixed_days_are_kept_and_reported_when_they_break_a_rule(tmp_path):
+    """先に決めた日はルールに関係なくそのまま入れ、食い違いは確認事項に出す。"""
+    engine, _ = _run(tmp_path, 2026, 8)
+    # その日に待機不可な人を探して指定する
+    target = next(
+        (day, name)
+        for day in engine.days
+        for name in engine.members
+        if not engine.eligibility(name, day).ok
+    )
+    day, name = target
+    solution = solve(CFG, engine, {day: name})
+    assert solution.assignment[day] == name
+    assert any("指定された日ですが" in n for n in solution.notes), solution.notes

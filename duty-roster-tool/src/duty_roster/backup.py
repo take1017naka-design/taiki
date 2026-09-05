@@ -380,7 +380,7 @@ class BackupSolver:
                     f"{day:%m/%d}(祝): 予備が{name}です。祝日のため相談してください"
                 )
             elig = self.engine.backup_eligibility(name, day)
-            if not elig.ok:
+            if not elig.ok and day not in self.fixed:
                 out.append(f"{day:%m/%d} {name}: 予備不可の日に割当（{elig.reason}）")
         for name, days in self.combined_days(assignment).items():
             if not days:
@@ -478,6 +478,13 @@ class BackupSolver:
                     "先に決めた予備: "
                     + "、".join(f"{d:%m/%d}={n}" for d, n in sorted(self.fixed.items()))
                 )
+                for day in sorted(self.fixed):
+                    elig = self.engine.backup_eligibility(assignment[day], day)
+                    if not elig.ok:
+                        out.append(
+                            f"{day:%m/%d} {assignment[day]}: 指定された日ですが、"
+                            f"ルール上は予備不可です（{elig.reason}）"
+                        )
         for name, days in self.combined_days(assignment).items():
             if name in self.consecutive_ignore:
                 continue
