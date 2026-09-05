@@ -46,7 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--fix",
         action="append",
         metavar="日=氏名",
-        help="先に決まっている担当を指定する（例 --fix 5=坂本 --fix 2026-10-12=一戸）。"
+        help="先に決まっている担当を指定する（例 --fix 5=担当B --fix 2026-10-12=担当C）。"
         " ルールに関係なくこのとおり入れ、残りを自動で決める。複数回指定できる",
     )
     gen.add_argument(

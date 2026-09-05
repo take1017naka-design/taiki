@@ -39,7 +39,7 @@ DEFAULTS: dict[str, Any] = {
         "sunday_once_each": True,
         # 翌日の勤務にこの記号があると、その人は待機・予備とも不可にする。
         #   unavailable_if_next_day:
-        #     坂本: ["アーム"]
+        #     担当B: ["アーム"]
         "unavailable_if_next_day": {},
         # 対象者全員が不在の日（日曜・祝日の一斉「公」など）は、
         # 不在を理由とする待機不可を解除する。解除しても赤字・黄色セル・
@@ -239,12 +239,12 @@ DEFAULTS: dict[str, Any] = {
     "history": {"enabled": True, "path": "config/history.json"},
     # 先に決まっている担当。ルールに関係なくこのとおり入れる。
     #   fixed_assignments:
-    #     2026-10-05: 坂本
+    #     2026-10-05: 担当B
     "fixed_assignments": {},
     # 勤務表から読み取れない事情を手で足す。氏名 -> 日付（と理由）のリスト。
     #   manual_unavailable:
-    #     坂本: ["2026-09-20"]
-    #     一戸: [{date: "2026-09-13", reason: "研究会"}]
+    #     担当B: ["2026-09-20"]
+    #     担当C: [{date: "2026-09-13", reason: "研究会"}]
     "manual_unavailable": {},
     "excel": {
         "sheet": None,          # None なら先頭シート

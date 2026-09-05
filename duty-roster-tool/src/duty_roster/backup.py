@@ -5,7 +5,7 @@
 ルール:
 
 * 待機者とは別の人
-* 待機者が backup_dependents（中沢・鈴木）の日は、必ず backup_anchor（中村）
+* 待機者が backup_dependents（担当G・担当H）の日は、必ず backup_anchor（担当A）
 * 待機者ごとに、予備に入れない人を設定できる（forbidden_pairs）
 * 待機と予備を**合算した**連続日数に上限を設ける（既定2日、例外で3日）
 * 回数は待機表と同じ目標回数に近づける（ハード制約ではない）

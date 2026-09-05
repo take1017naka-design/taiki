@@ -448,11 +448,18 @@ def list_member_names(path: str | Path, cfg: Config | None = None) -> list[str]:
     ws = wb[wb.sheetnames[0]]
     header_row, day_cols = _detect_header_row(ws, 40)
     first_day_col = day_cols[0][0]
+    # 勤務記号や見出しは氏名ではないので除く
+    skip = {"氏名", "曜日", "予", "実", "合計", "計"}
+    skip |= {normalize_code(c) for c in cfg.known_codes} if cfg else set()
     names: list[str] = []
     for row in range(header_row + 1, (ws.max_row or header_row) + 1):
         for col in range(1, first_day_col):
-            text = normalize_code(ws.cell(row=row, column=col).value)
-            # 姓＋空白＋名 の形（数値や記号は除外）
-            if re.fullmatch(r"[^\W\d_]{2,4} ?[^\W\d_]{1,4}", text) and text not in names:
+            raw = normalize_code(ws.cell(row=row, column=col).value)
+            # 「中　村」のように姓の中に空白を入れる書き方があるので詰める
+            text = normalize_name(raw)
+            if not text or text in skip or text in names:
+                continue
+            # 漢字・かなだけの2〜6文字を氏名とみなす（数字・記号・英字は除く）
+            if re.fullmatch(r"[一-龥ぁ-んァ-ヶー々]{2,6}", text):
                 names.append(text)
     return names

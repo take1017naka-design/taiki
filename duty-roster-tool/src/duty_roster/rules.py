@@ -191,7 +191,7 @@ class RuleEngine:
     def next_day_blocking_codes(self, name: str, day: dt.date) -> list[str]:
         """翌日の勤務のうち、その人を待機・予備とも不可にする記号。
 
-        設定の `roles.unavailable_if_next_day`（例: 坂本は翌日アームなら不可）。
+        設定の `roles.unavailable_if_next_day`（例: 担当Bは翌日アームなら不可）。
         """
         wanted = self.unavailable_if_next_day.get(name)
         if not wanted:
@@ -254,7 +254,7 @@ class RuleEngine:
         if day in manual:
             return Eligibility(False, f"手動で待機不可に指定（{manual[day]}）")
 
-        # 0'. 翌日の勤務による不可（例: 坂本は翌日アームなら不可）
+        # 0'. 翌日の勤務による不可（例: 担当Bは翌日アームなら不可）
         blocked = self.next_day_blocking_codes(name, day)
         if blocked:
             return Eligibility(False, f"翌日が{'/'.join(blocked)}")
