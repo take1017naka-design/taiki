@@ -27,7 +27,14 @@
       "その他の抗血小板薬",
       "ワルファリン",
       "DOAC",
-      "その他の抗凝固薬"
+      "その他の抗凝固薬",
+      "スタチン(高強度)",
+      "スタチン(非高強度)",
+      "エゼチミブ",
+      "ベンペド酸",
+      "エボロクマブ",
+      "インクリシラン",
+      "その他の抗脂質薬"
     ]
   },
   "drugs": [
@@ -378,7 +385,9 @@
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "スタチン(非高強度)"
+      ]
     },
     {
       "id": "simvastatin",
@@ -390,7 +399,9 @@
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "スタチン(非高強度)"
+      ]
     },
     {
       "id": "fluvastatin",
@@ -402,7 +413,9 @@
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "スタチン(非高強度)"
+      ]
     },
     {
       "id": "atorvastatin",
@@ -414,7 +427,9 @@
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "スタチン(高強度)"
+      ]
     },
     {
       "id": "pitavastatin",
@@ -426,7 +441,9 @@
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "スタチン(高強度)"
+      ]
     },
     {
       "id": "rosuvastatin",
@@ -438,7 +455,9 @@
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "スタチン(高強度)"
+      ]
     },
     {
       "id": "ezetimibe",
@@ -450,7 +469,9 @@
       "subcategory": "小腸コレステロールトランスポーター阻害薬",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "エゼチミブ"
+      ]
     },
     {
       "id": "atorvastatin_ezetimibe",
@@ -465,7 +486,10 @@
         "アトルバスタチンカルシウム水和物",
         "エゼチミブ"
       ],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "スタチン(高強度)",
+        "エゼチミブ"
+      ]
     },
     {
       "id": "rosuvastatin_ezetimibe",
@@ -480,7 +504,10 @@
         "ロスバスタチンカルシウム",
         "エゼチミブ"
       ],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "スタチン(高強度)",
+        "エゼチミブ"
+      ]
     },
     {
       "id": "bezafibrate",
@@ -493,7 +520,9 @@
       "subcategory": "フィブラート系",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "その他の抗脂質薬"
+      ]
     },
     {
       "id": "fenofibrate",
@@ -506,7 +535,9 @@
       "subcategory": "フィブラート系",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "その他の抗脂質薬"
+      ]
     },
     {
       "id": "colestimide",
@@ -518,7 +549,9 @@
       "subcategory": "陰イオン交換樹脂(レジン)",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "その他の抗脂質薬"
+      ]
     },
     {
       "id": "cholestyramine",
@@ -530,7 +563,9 @@
       "subcategory": "陰イオン交換樹脂(レジン)",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "その他の抗脂質薬"
+      ]
     },
     {
       "id": "evolocumab",
@@ -542,7 +577,9 @@
       "subcategory": "PCSK9阻害薬(注射)",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "エボロクマブ"
+      ]
     },
     {
       "id": "alirocumab",
@@ -554,7 +591,9 @@
       "subcategory": "PCSK9阻害薬(注射)",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "その他の抗脂質薬"
+      ]
     },
     {
       "id": "omega3_ethyl_esters",
@@ -566,7 +605,37 @@
       "subcategory": "EPA・DHA製剤",
       "is_combination": false,
       "components": [],
-      "pci_check_bucket": []
+      "pci_check_bucket": [
+        "その他の抗脂質薬"
+      ]
+    },
+    {
+      "id": "bempedoic_acid",
+      "generic_name": "ベンペド酸",
+      "brand_names": [
+        "ニルデガ"
+      ],
+      "category": "抗脂質異常症薬",
+      "subcategory": "ATPクエン酸リアーゼ(ACL)阻害薬",
+      "is_combination": false,
+      "components": [],
+      "pci_check_bucket": [
+        "ベンペド酸"
+      ]
+    },
+    {
+      "id": "inclisiran",
+      "generic_name": "インクリシラン",
+      "brand_names": [
+        "レクビオ"
+      ],
+      "category": "抗脂質異常症薬",
+      "subcategory": "PCSK9合成阻害薬(siRNA製剤・注射)",
+      "is_combination": false,
+      "components": [],
+      "pci_check_bucket": [
+        "インクリシラン"
+      ]
     }
   ]
 }

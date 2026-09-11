@@ -49,7 +49,7 @@ def format_drug(drug: dict) -> str:
     if drug.get("is_combination"):
         lines.append(f"配合成分: {', '.join(drug['components'])}")
     bucket = drug.get("pci_check_bucket") or []
-    lines.append(f"該当区分: {', '.join(bucket) if bucket else '該当なし(抗血小板薬・抗凝固薬の8区分対象外)'}")
+    lines.append(f"該当区分: {', '.join(bucket) if bucket else '該当なし(区分未設定)'}")
     return "\n".join(lines)
 
 
