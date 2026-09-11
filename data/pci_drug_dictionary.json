@@ -10,7 +10,8 @@
       "subcategory": "中分類(作用機序・系統)",
       "is_combination": "配合剤かどうか",
       "components": "配合剤の場合の構成成分(一般名)",
-      "pci_check_bucket": "PCI時確認の8区分(該当区分の配列。抗脂質異常症薬は対象外のため空配列)"
+      "pci_check_bucket": "PCI時確認の8区分(該当区分の配列。抗脂質異常症薬は対象外のため空配列)",
+      "evt_check_bucket": "EVT(血管内治療)時確認の区分(該当区分の配列。PCIと一部重複するが区分構成が異なる。対象外は空配列)"
     },
     "categories": [
       "抗血小板薬",
@@ -35,6 +36,15 @@
       "エボロクマブ",
       "インクリシラン",
       "その他の抗脂質薬"
+    ],
+    "evt_check_buckets": [
+      "アスピリン",
+      "P2Y12阻害薬",
+      "チエノピリジン",
+      "シロスタゾール",
+      "その他の抗血小板薬",
+      "ワルファリン",
+      "DOAC"
     ]
   },
   "drugs": [
@@ -52,6 +62,9 @@
       "components": [],
       "pci_check_bucket": [
         "アスピリン"
+      ],
+      "evt_check_bucket": [
+        "アスピリン"
       ]
     },
     {
@@ -66,6 +79,10 @@
       "components": [],
       "pci_check_bucket": [
         "クロピドグレル"
+      ],
+      "evt_check_bucket": [
+        "P2Y12阻害薬",
+        "チエノピリジン"
       ]
     },
     {
@@ -80,6 +97,10 @@
       "components": [],
       "pci_check_bucket": [
         "プラスグレル"
+      ],
+      "evt_check_bucket": [
+        "P2Y12阻害薬",
+        "チエノピリジン"
       ]
     },
     {
@@ -94,6 +115,9 @@
       "components": [],
       "pci_check_bucket": [
         "チカグレロル"
+      ],
+      "evt_check_bucket": [
+        "P2Y12阻害薬"
       ]
     },
     {
@@ -108,6 +132,10 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗血小板薬"
+      ],
+      "evt_check_bucket": [
+        "P2Y12阻害薬",
+        "チエノピリジン"
       ]
     },
     {
@@ -122,6 +150,9 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗血小板薬"
+      ],
+      "evt_check_bucket": [
+        "シロスタゾール"
       ]
     },
     {
@@ -136,6 +167,9 @@
       "is_combination": false,
       "components": [],
       "pci_check_bucket": [
+        "その他の抗血小板薬"
+      ],
+      "evt_check_bucket": [
         "その他の抗血小板薬"
       ]
     },
@@ -152,6 +186,9 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗血小板薬"
+      ],
+      "evt_check_bucket": [
+        "その他の抗血小板薬"
       ]
     },
     {
@@ -165,6 +202,9 @@
       "is_combination": false,
       "components": [],
       "pci_check_bucket": [
+        "その他の抗血小板薬"
+      ],
+      "evt_check_bucket": [
         "その他の抗血小板薬"
       ]
     },
@@ -181,6 +221,9 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗血小板薬"
+      ],
+      "evt_check_bucket": [
+        "その他の抗血小板薬"
       ]
     },
     {
@@ -194,6 +237,9 @@
       "is_combination": false,
       "components": [],
       "pci_check_bucket": [
+        "その他の抗血小板薬"
+      ],
+      "evt_check_bucket": [
         "その他の抗血小板薬"
       ]
     },
@@ -211,6 +257,9 @@
         "ランソプラゾール"
       ],
       "pci_check_bucket": [
+        "アスピリン"
+      ],
+      "evt_check_bucket": [
         "アスピリン"
       ]
     },
@@ -230,6 +279,11 @@
       "pci_check_bucket": [
         "アスピリン",
         "クロピドグレル"
+      ],
+      "evt_check_bucket": [
+        "アスピリン",
+        "P2Y12阻害薬",
+        "チエノピリジン"
       ]
     },
     {
@@ -243,6 +297,9 @@
       "is_combination": false,
       "components": [],
       "pci_check_bucket": [
+        "ワルファリン"
+      ],
+      "evt_check_bucket": [
         "ワルファリン"
       ]
     },
@@ -258,6 +315,9 @@
       "components": [],
       "pci_check_bucket": [
         "DOAC"
+      ],
+      "evt_check_bucket": [
+        "DOAC"
       ]
     },
     {
@@ -271,6 +331,9 @@
       "is_combination": false,
       "components": [],
       "pci_check_bucket": [
+        "DOAC"
+      ],
+      "evt_check_bucket": [
         "DOAC"
       ]
     },
@@ -286,6 +349,9 @@
       "components": [],
       "pci_check_bucket": [
         "DOAC"
+      ],
+      "evt_check_bucket": [
+        "DOAC"
       ]
     },
     {
@@ -299,6 +365,9 @@
       "is_combination": false,
       "components": [],
       "pci_check_bucket": [
+        "DOAC"
+      ],
+      "evt_check_bucket": [
         "DOAC"
       ]
     },
@@ -315,7 +384,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗凝固薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "heparin_calcium",
@@ -330,7 +400,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗凝固薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "fondaparinux",
@@ -344,7 +415,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗凝固薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "argatroban",
@@ -359,7 +431,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗凝固薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "danaparoid",
@@ -373,7 +446,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗凝固薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "pravastatin",
@@ -387,7 +461,8 @@
       "components": [],
       "pci_check_bucket": [
         "スタチン(非高強度)"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "simvastatin",
@@ -401,7 +476,8 @@
       "components": [],
       "pci_check_bucket": [
         "スタチン(非高強度)"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "fluvastatin",
@@ -415,7 +491,8 @@
       "components": [],
       "pci_check_bucket": [
         "スタチン(非高強度)"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "atorvastatin",
@@ -429,7 +506,8 @@
       "components": [],
       "pci_check_bucket": [
         "スタチン(高強度)"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "pitavastatin",
@@ -443,7 +521,8 @@
       "components": [],
       "pci_check_bucket": [
         "スタチン(高強度)"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "rosuvastatin",
@@ -457,7 +536,8 @@
       "components": [],
       "pci_check_bucket": [
         "スタチン(高強度)"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "ezetimibe",
@@ -471,7 +551,8 @@
       "components": [],
       "pci_check_bucket": [
         "エゼチミブ"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "atorvastatin_ezetimibe",
@@ -489,7 +570,8 @@
       "pci_check_bucket": [
         "スタチン(高強度)",
         "エゼチミブ"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "rosuvastatin_ezetimibe",
@@ -507,7 +589,8 @@
       "pci_check_bucket": [
         "スタチン(高強度)",
         "エゼチミブ"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "bezafibrate",
@@ -522,7 +605,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗脂質薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "fenofibrate",
@@ -537,7 +621,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗脂質薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "colestimide",
@@ -551,7 +636,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗脂質薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "cholestyramine",
@@ -565,7 +651,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗脂質薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "evolocumab",
@@ -579,7 +666,8 @@
       "components": [],
       "pci_check_bucket": [
         "エボロクマブ"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "alirocumab",
@@ -593,7 +681,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗脂質薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "omega3_ethyl_esters",
@@ -607,7 +696,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗脂質薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "bempedoic_acid",
@@ -621,7 +711,8 @@
       "components": [],
       "pci_check_bucket": [
         "ベンペド酸"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "inclisiran",
@@ -635,7 +726,8 @@
       "components": [],
       "pci_check_bucket": [
         "インクリシラン"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "bivalirudin",
@@ -649,7 +741,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗凝固薬"
-      ]
+      ],
+      "evt_check_bucket": []
     },
     {
       "id": "probucol",
@@ -664,7 +757,8 @@
       "components": [],
       "pci_check_bucket": [
         "その他の抗脂質薬"
-      ]
+      ],
+      "evt_check_bucket": []
     }
   ]
 }
