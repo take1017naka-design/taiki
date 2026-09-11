@@ -636,6 +636,35 @@
       "pci_check_bucket": [
         "インクリシラン"
       ]
+    },
+    {
+      "id": "bivalirudin",
+      "generic_name": "ビバリルジン",
+      "brand_names": [
+        "アンジオックス"
+      ],
+      "category": "抗凝固薬",
+      "subcategory": "直接トロンビン阻害薬(注射・PCI施行時の周術期抗凝固薬)",
+      "is_combination": false,
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗凝固薬"
+      ]
+    },
+    {
+      "id": "probucol",
+      "generic_name": "プロブコール",
+      "brand_names": [
+        "シンレスタール",
+        "ロレルコ"
+      ],
+      "category": "抗脂質異常症薬",
+      "subcategory": "プロブコール系(抗酸化作用を有する脂質低下薬)",
+      "is_combination": false,
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗脂質薬"
+      ]
     }
   ]
 }
