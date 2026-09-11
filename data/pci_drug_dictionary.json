@@ -9,363 +9,564 @@
       "category": "大分類",
       "subcategory": "中分類(作用機序・系統)",
       "is_combination": "配合剤かどうか",
-      "components": "配合剤の場合の構成成分(一般名)"
+      "components": "配合剤の場合の構成成分(一般名)",
+      "pci_check_bucket": "PCI時確認の8区分(該当区分の配列。抗脂質異常症薬は対象外のため空配列)"
     },
-    "categories": ["抗血小板薬", "抗凝固薬", "抗脂質異常症薬"],
+    "categories": [
+      "抗血小板薬",
+      "抗凝固薬",
+      "抗脂質異常症薬"
+    ],
     "disclaimer": "本辞書は一般的な薬学知識に基づき作成した参考資料であり、医薬品の完全な網羅・最新性を保証するものではない。臨床使用にあたっては必ず最新の添付文書・インタビューフォーム・院内マニュアル等で確認すること。",
-    "last_updated": "2026-09-11"
+    "last_updated": "2026-09-11",
+    "pci_check_buckets": [
+      "アスピリン",
+      "クロピドグレル",
+      "プラスグレル",
+      "チカグレロル",
+      "その他の抗血小板薬",
+      "ワルファリン",
+      "DOAC",
+      "その他の抗凝固薬"
+    ]
   },
   "drugs": [
     {
       "id": "aspirin",
       "generic_name": "アスピリン",
-      "brand_names": ["バイアスピリン", "バファリン配合錠A81", "バファリン配合錠330"],
+      "brand_names": [
+        "バイアスピリン",
+        "バファリン配合錠A81",
+        "バファリン配合錠330"
+      ],
       "category": "抗血小板薬",
       "subcategory": "COX阻害薬(シクロオキシゲナーゼ阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "アスピリン"
+      ]
     },
     {
       "id": "clopidogrel",
       "generic_name": "クロピドグレル硫酸塩",
-      "brand_names": ["プラビックス"],
+      "brand_names": [
+        "プラビックス"
+      ],
       "category": "抗血小板薬",
       "subcategory": "P2Y12阻害薬(チエノピリジン系)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "クロピドグレル"
+      ]
     },
     {
       "id": "prasugrel",
       "generic_name": "プラスグレル塩酸塩",
-      "brand_names": ["エフィエント"],
+      "brand_names": [
+        "エフィエント"
+      ],
       "category": "抗血小板薬",
       "subcategory": "P2Y12阻害薬(チエノピリジン系)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "プラスグレル"
+      ]
     },
     {
       "id": "ticagrelor",
       "generic_name": "チカグレロル",
-      "brand_names": ["ブリリンタ"],
+      "brand_names": [
+        "ブリリンタ"
+      ],
       "category": "抗血小板薬",
       "subcategory": "P2Y12阻害薬(非チエノピリジン系)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "チカグレロル"
+      ]
     },
     {
       "id": "ticlopidine",
       "generic_name": "チクロピジン塩酸塩",
-      "brand_names": ["パナルジン"],
+      "brand_names": [
+        "パナルジン"
+      ],
       "category": "抗血小板薬",
       "subcategory": "P2Y12阻害薬(チエノピリジン系)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗血小板薬"
+      ]
     },
     {
       "id": "cilostazol",
       "generic_name": "シロスタゾール",
-      "brand_names": ["プレタール"],
+      "brand_names": [
+        "プレタール"
+      ],
       "category": "抗血小板薬",
       "subcategory": "ホスホジエステラーゼ(PDE3)阻害薬",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗血小板薬"
+      ]
     },
     {
       "id": "dipyridamole",
       "generic_name": "ジピリダモール",
-      "brand_names": ["ペルサンチン", "アンギナール"],
+      "brand_names": [
+        "ペルサンチン",
+        "アンギナール"
+      ],
       "category": "抗血小板薬",
       "subcategory": "ホスホジエステラーゼ阻害薬",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗血小板薬"
+      ]
     },
     {
       "id": "beraprost",
       "generic_name": "ベラプロストナトリウム",
-      "brand_names": ["ドルナー", "プロサイリン"],
+      "brand_names": [
+        "ドルナー",
+        "プロサイリン"
+      ],
       "category": "抗血小板薬",
       "subcategory": "プロスタグランジンI2(PGI2)誘導体",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗血小板薬"
+      ]
     },
     {
       "id": "sarpogrelate",
       "generic_name": "サルポグレラート塩酸塩",
-      "brand_names": ["アンプラーグ"],
+      "brand_names": [
+        "アンプラーグ"
+      ],
       "category": "抗血小板薬",
       "subcategory": "セロトニン(5-HT2)受容体拮抗薬",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗血小板薬"
+      ]
     },
     {
       "id": "ozagrel",
       "generic_name": "オザグレルナトリウム",
-      "brand_names": ["キサンボン", "カタクロット"],
+      "brand_names": [
+        "キサンボン",
+        "カタクロット"
+      ],
       "category": "抗血小板薬",
       "subcategory": "トロンボキサンA2合成酵素阻害薬(注射)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗血小板薬"
+      ]
     },
     {
       "id": "icosapent_ethyl",
       "generic_name": "イコサペント酸エチル",
-      "brand_names": ["エパデール"],
+      "brand_names": [
+        "エパデール"
+      ],
       "category": "抗血小板薬",
       "subcategory": "EPA製剤(抗血小板作用・脂質改善作用を併せ持つ)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗血小板薬"
+      ]
     },
     {
       "id": "aspirin_lansoprazole",
       "generic_name": "アスピリン・ランソプラゾール",
-      "brand_names": ["タケルダ配合錠"],
+      "brand_names": [
+        "タケルダ配合錠"
+      ],
       "category": "抗血小板薬",
       "subcategory": "COX阻害薬+PPI配合剤",
       "is_combination": true,
-      "components": ["アスピリン", "ランソプラゾール"]
+      "components": [
+        "アスピリン",
+        "ランソプラゾール"
+      ],
+      "pci_check_bucket": [
+        "アスピリン"
+      ]
     },
     {
       "id": "aspirin_clopidogrel",
       "generic_name": "アスピリン・クロピドグレル硫酸塩",
-      "brand_names": ["コンプラビン配合錠"],
+      "brand_names": [
+        "コンプラビン配合錠"
+      ],
       "category": "抗血小板薬",
       "subcategory": "COX阻害薬+P2Y12阻害薬配合剤(DAPT配合剤)",
       "is_combination": true,
-      "components": ["アスピリン", "クロピドグレル硫酸塩"]
+      "components": [
+        "アスピリン",
+        "クロピドグレル硫酸塩"
+      ],
+      "pci_check_bucket": [
+        "アスピリン",
+        "クロピドグレル"
+      ]
     },
     {
       "id": "warfarin",
       "generic_name": "ワルファリンカリウム",
-      "brand_names": ["ワーファリン"],
+      "brand_names": [
+        "ワーファリン"
+      ],
       "category": "抗凝固薬",
       "subcategory": "ビタミンK拮抗薬",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "ワルファリン"
+      ]
     },
     {
       "id": "dabigatran",
       "generic_name": "ダビガトランエテキシラートメタンスルホン酸塩",
-      "brand_names": ["プラザキサ"],
+      "brand_names": [
+        "プラザキサ"
+      ],
       "category": "抗凝固薬",
       "subcategory": "DOAC(直接トロンビン阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "DOAC"
+      ]
     },
     {
       "id": "rivaroxaban",
       "generic_name": "リバーロキサバン",
-      "brand_names": ["イグザレルト"],
+      "brand_names": [
+        "イグザレルト"
+      ],
       "category": "抗凝固薬",
       "subcategory": "DOAC(直接Xa阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "DOAC"
+      ]
     },
     {
       "id": "apixaban",
       "generic_name": "アピキサバン",
-      "brand_names": ["エリキュース"],
+      "brand_names": [
+        "エリキュース"
+      ],
       "category": "抗凝固薬",
       "subcategory": "DOAC(直接Xa阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "DOAC"
+      ]
     },
     {
       "id": "edoxaban",
       "generic_name": "エドキサバントシル酸塩水和物",
-      "brand_names": ["リクシアナ"],
+      "brand_names": [
+        "リクシアナ"
+      ],
       "category": "抗凝固薬",
       "subcategory": "DOAC(直接Xa阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "DOAC"
+      ]
     },
     {
       "id": "heparin_sodium",
       "generic_name": "ヘパリンナトリウム",
-      "brand_names": ["ヘパリンナトリウム注", "ノボ・ヘパリン"],
+      "brand_names": [
+        "ヘパリンナトリウム注",
+        "ノボ・ヘパリン"
+      ],
       "category": "抗凝固薬",
       "subcategory": "未分画ヘパリン(注射)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗凝固薬"
+      ]
     },
     {
       "id": "heparin_calcium",
       "generic_name": "ヘパリンカルシウム",
-      "brand_names": ["カプロシン", "ヘパリンカルシウム皮下注"],
+      "brand_names": [
+        "カプロシン",
+        "ヘパリンカルシウム皮下注"
+      ],
       "category": "抗凝固薬",
       "subcategory": "未分画ヘパリン(注射)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗凝固薬"
+      ]
     },
     {
       "id": "fondaparinux",
       "generic_name": "フォンダパリヌクスナトリウム",
-      "brand_names": ["アリクストラ"],
+      "brand_names": [
+        "アリクストラ"
+      ],
       "category": "抗凝固薬",
       "subcategory": "選択的第Xa因子阻害薬(注射)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗凝固薬"
+      ]
     },
     {
       "id": "argatroban",
       "generic_name": "アルガトロバン水和物",
-      "brand_names": ["ノバスタンHI", "スロンノンHI"],
+      "brand_names": [
+        "ノバスタンHI",
+        "スロンノンHI"
+      ],
       "category": "抗凝固薬",
       "subcategory": "直接トロンビン阻害薬(注射・HIT時のPCIにも使用)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗凝固薬"
+      ]
     },
     {
       "id": "danaparoid",
       "generic_name": "ダナパロイドナトリウム",
-      "brand_names": ["オルガラン"],
+      "brand_names": [
+        "オルガラン"
+      ],
       "category": "抗凝固薬",
       "subcategory": "ヘパリノイド(注射)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": [
+        "その他の抗凝固薬"
+      ]
     },
     {
       "id": "pravastatin",
       "generic_name": "プラバスタチンナトリウム",
-      "brand_names": ["メバロチン"],
+      "brand_names": [
+        "メバロチン"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "simvastatin",
       "generic_name": "シンバスタチン",
-      "brand_names": ["リポバス"],
+      "brand_names": [
+        "リポバス"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "fluvastatin",
       "generic_name": "フルバスタチンナトリウム",
-      "brand_names": ["ローコール"],
+      "brand_names": [
+        "ローコール"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "atorvastatin",
       "generic_name": "アトルバスタチンカルシウム水和物",
-      "brand_names": ["リピトール"],
+      "brand_names": [
+        "リピトール"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "pitavastatin",
       "generic_name": "ピタバスタチンカルシウム",
-      "brand_names": ["リバロ"],
+      "brand_names": [
+        "リバロ"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "rosuvastatin",
       "generic_name": "ロスバスタチンカルシウム",
-      "brand_names": ["クレストール"],
+      "brand_names": [
+        "クレストール"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "スタチン系(HMG-CoA還元酵素阻害薬)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "ezetimibe",
       "generic_name": "エゼチミブ",
-      "brand_names": ["ゼチーア"],
+      "brand_names": [
+        "ゼチーア"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "小腸コレステロールトランスポーター阻害薬",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "atorvastatin_ezetimibe",
       "generic_name": "アトルバスタチン・エゼチミブ",
-      "brand_names": ["アトーゼット配合錠"],
+      "brand_names": [
+        "アトーゼット配合錠"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "スタチン+小腸コレステロールトランスポーター阻害薬配合剤",
       "is_combination": true,
-      "components": ["アトルバスタチンカルシウム水和物", "エゼチミブ"]
+      "components": [
+        "アトルバスタチンカルシウム水和物",
+        "エゼチミブ"
+      ],
+      "pci_check_bucket": []
     },
     {
       "id": "rosuvastatin_ezetimibe",
       "generic_name": "ロスバスタチン・エゼチミブ",
-      "brand_names": ["ロスーゼット配合錠"],
+      "brand_names": [
+        "ロスーゼット配合錠"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "スタチン+小腸コレステロールトランスポーター阻害薬配合剤",
       "is_combination": true,
-      "components": ["ロスバスタチンカルシウム", "エゼチミブ"]
+      "components": [
+        "ロスバスタチンカルシウム",
+        "エゼチミブ"
+      ],
+      "pci_check_bucket": []
     },
     {
       "id": "bezafibrate",
       "generic_name": "ベザフィブラート",
-      "brand_names": ["ベザトールSR", "ミデナール"],
+      "brand_names": [
+        "ベザトールSR",
+        "ミデナール"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "フィブラート系",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "fenofibrate",
       "generic_name": "フェノフィブラート",
-      "brand_names": ["リピディル", "トライコア"],
+      "brand_names": [
+        "リピディル",
+        "トライコア"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "フィブラート系",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "colestimide",
       "generic_name": "コレスチミド",
-      "brand_names": ["コレバイン"],
+      "brand_names": [
+        "コレバイン"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "陰イオン交換樹脂(レジン)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "cholestyramine",
       "generic_name": "コレスチラミン",
-      "brand_names": ["クエストラン"],
+      "brand_names": [
+        "クエストラン"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "陰イオン交換樹脂(レジン)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "evolocumab",
       "generic_name": "エボロクマブ",
-      "brand_names": ["レパーサ"],
+      "brand_names": [
+        "レパーサ"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "PCSK9阻害薬(注射)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "alirocumab",
       "generic_name": "アリロクマブ",
-      "brand_names": ["プラルエント"],
+      "brand_names": [
+        "プラルエント"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "PCSK9阻害薬(注射)",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     },
     {
       "id": "omega3_ethyl_esters",
       "generic_name": "オメガ-3脂肪酸エチル",
-      "brand_names": ["ロトリガ"],
+      "brand_names": [
+        "ロトリガ"
+      ],
       "category": "抗脂質異常症薬",
       "subcategory": "EPA・DHA製剤",
       "is_combination": false,
-      "components": []
+      "components": [],
+      "pci_check_bucket": []
     }
   ]
 }
