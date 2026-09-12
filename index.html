@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PULSE TAP - Rhythm Game</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== Title / Song Select ===== -->
+  <section id="screen-title" class="screen active">
+    <div class="bg-anim" id="title-bg"></div>
+    <div class="title-wrap">
+      <h1 class="logo">PULSE<span>TAP</span></h1>
+      <p class="tagline">音楽と映像に合わせてタップせよ</p>
+
+      <div class="song-list" id="song-list"></div>
+
+      <div class="hint">
+        <p>キーボード: <kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd> / タッチ操作対応</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Gameplay ===== -->
+  <section id="screen-game" class="screen">
+    <canvas id="game-canvas"></canvas>
+
+    <div id="hud">
+      <div class="hud-top">
+        <div class="hud-song-title" id="hud-song-title">---</div>
+        <div class="hud-score" id="hud-score">0</div>
+      </div>
+      <div class="hud-combo" id="hud-combo"></div>
+      <div class="hud-judge" id="hud-judge"></div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+
+    <div id="countdown" class="countdown"></div>
+
+    <div id="lane-buttons">
+      <button class="lane-btn" data-lane="0"><span>D</span></button>
+      <button class="lane-btn" data-lane="1"><span>F</span></button>
+      <button class="lane-btn" data-lane="2"><span>J</span></button>
+      <button class="lane-btn" data-lane="3"><span>K</span></button>
+    </div>
+
+    <button id="btn-pause" class="icon-btn" title="一時停止">II</button>
+
+    <div id="pause-overlay" class="overlay hidden">
+      <div class="overlay-box">
+        <h2>PAUSED</h2>
+        <button class="menu-btn" id="btn-resume">再開する</button>
+        <button class="menu-btn" id="btn-quit">曲選択に戻る</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Result ===== -->
+  <section id="screen-result" class="screen">
+    <div class="bg-anim" id="result-bg"></div>
+    <div class="result-wrap">
+      <div class="rank" id="result-rank">S</div>
+      <h2 id="result-song-title">SONG</h2>
+      <div class="result-stats">
+        <div class="stat"><span class="stat-label">SCORE</span><span class="stat-value" id="result-score">0</span></div>
+        <div class="stat"><span class="stat-label">MAX COMBO</span><span class="stat-value" id="result-combo">0</span></div>
+        <div class="stat"><span class="stat-label">精度</span><span class="stat-value" id="result-accuracy">0%</span></div>
+      </div>
+      <div class="judge-breakdown" id="judge-breakdown"></div>
+      <div class="result-buttons">
+        <button class="menu-btn" id="btn-retry">もう一度</button>
+        <button class="menu-btn" id="btn-back">曲選択へ</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="js/audio-engine.js"></script>
+<script src="js/songs.js"></script>
+<script src="js/visualizer.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
