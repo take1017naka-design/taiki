@@ -212,6 +212,24 @@ mark { background: #fff1a8; color: inherit; border-radius: 3px; padding: 0 0.1em
   margin-bottom: 0.2rem;
 }
 
+.card-image {
+  display: block;
+  max-width: 100%;
+  margin-top: 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.image-preview-wrap { margin-top: 0.5rem; }
+.image-preview-wrap img {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  margin-bottom: 0.4rem;
+}
+
 .data-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .data-status { font-size: 0.85rem; color: var(--color-text-muted); }
 

@@ -246,7 +246,7 @@ function seedTermsV2() {
 }
 
 function withIds(termList) {
-  return termList.map((t) => ({ id: uid(), memo: "", related: "", personalNote: "", ...t, updatedAt: nowStr() }));
+  return termList.map((t) => ({ id: uid(), memo: "", related: "", personalNote: "", image: "", ...t, updatedAt: nowStr() }));
 }
 
 // 既存データにv2以降で追加した用語をマージする。用語名(大文字小文字を無視)が
@@ -336,6 +336,66 @@ document.getElementById("tabs").addEventListener("click", (e) => {
 /* ---------- ① 用語辞書 ---------- */
 
 let termFormState = null; // { mode: 'add'|'edit', id? , prefill? }
+let termImageDataUrl = null; // 編集中フォームの画像(data URL)。フォーム全体の再描画で消えないよう別管理
+
+// 画像は端末のlocalStorageに保存されるため、容量を圧迫しないよう縮小・再圧縮してから保持する
+function resizeImageFile(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error || new Error("read failed"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("image decode failed"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleTermImageFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    termImageDataUrl = await resizeImageFile(file, 1000, 0.82);
+    updateTermImagePreview();
+  } catch (e) {
+    toast("画像の読み込みに失敗しました");
+  }
+}
+
+function removeTermImage() {
+  termImageDataUrl = null;
+  updateTermImagePreview();
+}
+
+function updateTermImagePreview() {
+  const wrap = document.getElementById("term-image-preview-wrap");
+  const img = document.getElementById("term-image-preview");
+  if (!wrap || !img) return;
+  if (termImageDataUrl) {
+    img.src = termImageDataUrl;
+    wrap.hidden = false;
+  } else {
+    img.src = "";
+    wrap.hidden = true;
+  }
+}
 
 // 用語名の完全一致・前方一致を優先し、それ以外は他フィールドの一致順に並べる
 // (PCI/EVTの検索アプリのように、探している語を上位に出す)
@@ -396,6 +456,7 @@ function renderTerms() {
           </div>
         </div>
         <div class="card-body">${highlightText(t.description, rawQuery)}</div>
+        ${t.image ? `<img class="card-image" src="${t.image}" alt="${escapeHtml(t.term)}の解説画像">` : ""}
         ${t.related ? `<p class="card-meta">関連: ${highlightText(t.related, rawQuery)}</p>` : ""}
         ${t.memo ? `<p class="card-meta">出典・参考: ${escapeHtml(t.memo)}</p>` : ""}
         ${t.personalNote ? `<div class="personal-note"><span class="personal-note-label">📝 自分の理解メモ</span>${highlightText(t.personalNote, rawQuery)}</div>` : ""}
@@ -413,17 +474,19 @@ function openTermForm(mode, id, prefillDescription, prefillTerm) {
 
 function closeTermForm() {
   termFormState = null;
+  termImageDataUrl = null;
   renderTermForm();
 }
 
 function renderTermForm() {
   const area = document.getElementById("term-form-area");
   if (!termFormState) { area.innerHTML = ""; return; }
-  let data = { term: termFormState.prefillTerm || "", reading: "", category: "", description: termFormState.prefillDescription || "", related: "", memo: "", personalNote: "" };
+  let data = { term: termFormState.prefillTerm || "", reading: "", category: "", description: termFormState.prefillDescription || "", related: "", memo: "", personalNote: "", image: "" };
   if (termFormState.mode === "edit") {
     const t = state.terms.find((x) => x.id === termFormState.id);
     if (t) data = { ...t };
   }
+  termImageDataUrl = data.image || null;
   area.innerHTML = `
     <div class="form-box">
       <div class="form-row">
@@ -454,6 +517,14 @@ function renderTermForm() {
         <label>📝 自分の理解メモ(任意)</label>
         <textarea id="f-personal-note" rows="3" placeholder="自分の言葉で言い換え・覚え方・実感したことなど">${escapeHtml(data.personalNote)}</textarea>
       </div>
+      <div class="form-row">
+        <label>解説画像(任意)</label>
+        <input type="file" accept="image/*" id="f-image-input" onchange="handleTermImageFile(event)">
+        <div id="term-image-preview-wrap" class="image-preview-wrap" ${termImageDataUrl ? "" : "hidden"}>
+          <img id="term-image-preview" src="${termImageDataUrl ? termImageDataUrl : ""}" alt="プレビュー">
+          <button type="button" class="btn btn-secondary btn-small" onclick="removeTermImage()">画像を削除</button>
+        </div>
+      </div>
       <div class="form-actions">
         <button class="btn btn-secondary" onclick="closeTermForm()">キャンセル</button>
         <button class="btn btn-primary" onclick="saveTermForm()">保存</button>
@@ -473,6 +544,7 @@ function saveTermForm() {
     related: document.getElementById("f-related").value.trim(),
     memo: document.getElementById("f-memo").value.trim(),
     personalNote: document.getElementById("f-personal-note").value.trim(),
+    image: termImageDataUrl || "",
     updatedAt: nowStr(),
   };
   if (termFormState.mode === "edit") {
