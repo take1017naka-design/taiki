@@ -32,7 +32,7 @@ function highlightText(str, query) {
 
 // 用語辞書の初期収録データ。version番号を上げて配列を追加すると、
 // 既にlocalStorageにデータがある端末にも次回起動時に自動で追記される(mergeSeedTerms参照)。
-const CURRENT_TERMS_SEED_VERSION = 4;
+const CURRENT_TERMS_SEED_VERSION = 5;
 
 function seedTermsV1() {
   return [
@@ -269,6 +269,25 @@ function seedTermsV4() {
   ];
 }
 
+function seedTermsV5() {
+  return [
+    {
+      term: "Slow pathway(遅伝導路)", reading: "すろーぱすうぇい",
+      category: "解剖",
+      description: "房室結節の二重伝導路のうち、伝導速度は遅いが不応期が短い経路。Koch三角内でコンパクトAV結節よりも後下方、冠静脈洞口寄り・三尖弁輪に沿った領域を走行する。typical(スロー・ファスト型)AVNRTでは順行性の伝導路として頻拍回路の一部を担い、AVNRTのカテーテルアブレーションではこの遅伝導路を焼灼して頻拍を根治する。",
+      related: "Fast pathway(速伝導路), AVNRT, Koch三角(Koch's triangle), ジャンプ現象(AH jump)",
+      memo: "",
+    },
+    {
+      term: "Fast pathway(速伝導路)", reading: "ふぁすとぱすうぇい",
+      category: "解剖",
+      description: "房室結節の二重伝導路のうち、伝導速度は速いが不応期が長い経路。Koch三角の頂点付近、コンパクトAV結節・His束に近い前中隔寄りを走行する。typical AVNRTでは逆行性の伝導路として頻拍回路の一部を担う。His束・コンパクトAV結節に近接するため、この経路そのものを焼灼しようとすると完全房室ブロックのリスクが高く、通常アブレーションの標的にはしない。",
+      related: "Slow pathway(遅伝導路), AVNRT, Koch三角(Koch's triangle), His束, 完全房室ブロック(complete AV block)",
+      memo: "",
+    },
+  ];
+}
+
 function withIds(termList) {
   return termList.map((t) => ({ id: uid(), memo: "", related: "", personalNote: "", image: "", ...t, updatedAt: nowStr() }));
 }
@@ -280,6 +299,7 @@ const SEED_BATCHES = [
   { version: 2, fn: seedTermsV2 },
   { version: 3, fn: seedTermsV3 },
   { version: 4, fn: seedTermsV4 },
+  { version: 5, fn: seedTermsV5 },
 ];
 
 // 既存データに現行バージョンまでの追加用語をマージする。用語名(大文字小文字を無視)が
