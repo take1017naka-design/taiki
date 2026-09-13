@@ -32,7 +32,7 @@ function highlightText(str, query) {
 
 // 用語辞書の初期収録データ。version番号を上げて配列を追加すると、
 // 既にlocalStorageにデータがある端末にも次回起動時に自動で追記される(mergeSeedTerms参照)。
-const CURRENT_TERMS_SEED_VERSION = 3;
+const CURRENT_TERMS_SEED_VERSION = 4;
 
 function seedTermsV1() {
   return [
@@ -251,8 +251,20 @@ function seedTermsV3() {
       term: "Orthodromic His capture", reading: "おーそどろみっくひすほかく",
       category: "手技・検査",
       description: "AVNRTのエントレインメント中に、His電位記録カテーテルが同時にとらえている局所心房電位が、頻拍自身の興奮伝播と同じ経路・向き(順方向≒orthodromic)で捕捉される現象。これが確認できると、頻拍回路とHis記録部位の間に「上部共通路(upper common pathway)」が存在しないことを示唆し、AVNRTの回路構造を推定する手がかりになる。なお、AVRTのエントレインメント中に心室からの逆行性伝導でHis電位自体が先に捕捉される現象は区別して「antidromic His capture」と呼ばれる。",
-      related: "エントレインメント, His束, AVNRT, PPI(Post-Pacing Interval)",
+      related: "エントレインメント, His束, AVNRT, PPI(Post-Pacing Interval), Antidromic His capture",
       memo: "出典: Circulation 1993「Orthodromic capture of the atrial electrogram during transient entrainment of AVNRT」、Wiley PACE/JCE「Antidromic His capture during entrainment of orthodromic AVRT」(2026年時点で要旨を確認)",
+    },
+  ];
+}
+
+function seedTermsV4() {
+  return [
+    {
+      term: "Antidromic His capture", reading: "あんちどろみっくひすほかく",
+      category: "手技・検査",
+      description: "順行性AVRT(Orthodromic AVRT)を心室からのオーバードライブペーシングでエントレインメントする際に、His電位がペーシング部位からHis-Purkinje系を逆行性に(頻拍回路自体の伝導方向とは逆の\"antidromic\"な向きで)先に捕捉されてしまう現象。この場合H-H間隔がA-A間隔よりも先にペーシングへ同調してしまい、あたかもAVNRTのような所見を呈することがあるため、頻拍機序を誤診断しかねない診断上の落とし穴として知られる。",
+      related: "Orthodromic His capture, エントレインメント, His束, 順行性AVRT(Orthodromic AVRT), AVNRT",
+      memo: "出典: Nair et al., PACE 2010「Antidromic His Capture during Entrainment of Orthodromic AVRT」、Nair et al., J Cardiovasc Electrophysiol 2021「Antidromic His capture during ventricular entrainment of an orthodromic AVRT. What is the mechanism?」(2026年時点で要旨を確認)",
     },
   ];
 }
@@ -267,6 +279,7 @@ const SEED_BATCHES = [
   { version: 1, fn: seedTermsV1 },
   { version: 2, fn: seedTermsV2 },
   { version: 3, fn: seedTermsV3 },
+  { version: 4, fn: seedTermsV4 },
 ];
 
 // 既存データに現行バージョンまでの追加用語をマージする。用語名(大文字小文字を無視)が
