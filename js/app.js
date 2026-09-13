@@ -757,6 +757,7 @@ function renderScratch() {
           <p class="card-meta"><span class="scratch-status open">未解決</span>${escapeHtml(s.createdAt)}</p>
         </div>
         <div class="card-actions">
+          <button class="btn btn-secondary btn-small" onclick="copyScratchText('${s.id}')">コピー</button>
           <button class="btn btn-danger btn-small" onclick="deleteScratch('${s.id}')">削除</button>
         </div>
       </div>
@@ -792,6 +793,33 @@ function deleteScratch(id) {
   state.scratch = state.scratch.filter((s) => s.id !== id);
   save();
   renderScratch();
+}
+
+// クリップボードにコピーして、調べてほしい内容をチャットへ貼り付けやすくする
+function copyScratchText(id) {
+  const s = state.scratch.find((x) => x.id === id);
+  if (!s) return;
+  const text = s.text;
+  const done = () => toast("コピーしました。チャットに貼り付けてください");
+  const fail = () => toast("コピーに失敗しました。手動で選択してコピーしてください");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, fail);
+  } else {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      done();
+    } catch (e) {
+      fail();
+    }
+  }
 }
 
 function resolveScratch(id) {
