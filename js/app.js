@@ -32,49 +32,49 @@ function highlightText(str, query) {
 
 // 用語辞書の初期収録データ。version番号を上げて配列を追加すると、
 // 既にlocalStorageにデータがある端末にも次回起動時に自動で追記される(mergeSeedTerms参照)。
-const CURRENT_TERMS_SEED_VERSION = 5;
+const CURRENT_TERMS_SEED_VERSION = 6;
 
 function seedTermsV1() {
   return [
     {
       term: "PSVT", reading: "はっさせいじょうしつせいひんぱく",
       category: "不整脈", description: "発作性上室性頻拍(Paroxysmal SupraVentricular Tachycardia)。突然始まり突然止まる規則正しい頻拍の総称。代表的な機序にAVNRT・AVRTがある。",
-      related: "AVNRT, AVRT, WPW症候群", memo: "",
+      related: "AVNRT, AVRT, WPW症候群, 心房頻拍(AT), Long RP/Short RP頻拍", memo: "",
     },
     {
       term: "AVNRT", reading: "ぼうしつけっせつりえんとりーせいひんぱく",
       category: "不整脈", description: "房室結節リエントリー性頻拍。房室結節内の遅伝導路(slow pathway)と速伝導路(fast pathway)の二重伝導路を旋回するリエントリー性頻拍。アブレーションではslow pathwayを焼灼することが多い。",
-      related: "PSVT, slow pathway, fast pathway, ジャンプ現象", memo: "",
+      related: "PSVT, Slow pathway(遅伝導路), Fast pathway(速伝導路), ジャンプ現象(AH jump), スロー・ファスト型AVNRT(Typical), ファスト・スロー型/スロー・スロー型AVNRT(Atypical), Koch三角(Koch's triangle), 房室結節(AV node)", memo: "",
     },
     {
       term: "AVRT", reading: "ぼうしつりえんとりーせいひんぱく",
       category: "不整脈", description: "房室リエントリー性頻拍。房室結節と副伝導路(Kent束など)を旋回するリエントリー性頻拍。WPW症候群に伴うことが多い。",
-      related: "PSVT, WPW症候群, 副伝導路, 順行性AVRT, 逆方向性AVRT", memo: "",
+      related: "PSVT, WPW症候群, 副伝導路(Accessory pathway), 順行性AVRT(Orthodromic AVRT), 逆方向性AVRT(Antidromic AVRT), マハイム線維/マハイム型頻拍", memo: "",
     },
     {
       term: "WPW症候群", reading: "だぶりゅーぴーだぶりゅーしょうこうぐん",
       category: "不整脈", description: "Wolff-Parkinson-White症候群。副伝導路(Kent束)の存在によりデルタ波・PQ短縮を示し、AVRTを起こしやすい病態。",
-      related: "AVRT, 副伝導路, デルタ波, 顕性WPW症候群", memo: "",
+      related: "AVRT, 副伝導路(Accessory pathway), 顕性WPW症候群/潜在性WPW症候群, 順行性AVRT(Orthodromic AVRT), 逆方向性AVRT(Antidromic AVRT)", memo: "",
     },
     {
       term: "His束", reading: "ひすそく",
       category: "解剖", description: "房室結節から続き、左右脚に分かれる特殊心筋の伝導路。カテーテルを置いてHis電位を記録し、房室伝導の評価やカテーテル位置の指標に用いる。",
-      related: "房室結節, 右脚, 左脚, AH時間, HV時間", memo: "",
+      related: "房室結節(AV node), AH時間, HV時間, Koch三角(Koch's triangle), Para-Hisian pacing(パラヒス電位ペーシング), 完全房室ブロック(complete AV block)", memo: "",
     },
     {
       term: "冠静脈洞(CS)", reading: "かんじょうみゃくどう",
       category: "解剖", description: "Coronary Sinus。左房後壁を走行する静脈で、多極カテーテルを留置して左房側の興奮伝播順序を記録するのに使われる。",
-      related: "多極カテーテル, 左房", memo: "",
+      related: "Koch三角(Koch's triangle), 僧帽弁輪(MA), 卵円窩(Fossa ovalis)", memo: "",
     },
     {
       term: "エントレインメント", reading: "えんとれいんめんと",
       category: "手技・検査", description: "頻拍中にペーシングで頻拍レートより速く駆動し、頻拍がリエントリー性かどうか、また回路上の部位かを判定する手技。post-pacing interval(PPI)などで評価する。",
-      related: "PPI, リエントリー", memo: "",
+      related: "PPI(Post-Pacing Interval), Orthodromic His capture, Antidromic His capture, デクリメンタルペーシング/バーストペーシング", memo: "",
     },
     {
       term: "ERP(有効不応期)", reading: "いーあーるぴー",
       category: "生理検査", description: "Effective Refractory Period。刺激を加えても伝導・興奮が生じなくなる最長の連結期。房室結節や副伝導路の伝導特性評価に用いる。",
-      related: "不応期, 電気生理検査", memo: "",
+      related: "Wenckebach周期長(AVN Wenckebach cycle length), プログラム電気刺激(PES)/期外刺激, Slow pathway(遅伝導路), Fast pathway(速伝導路)", memo: "",
     },
   ];
 }
@@ -85,107 +85,107 @@ function seedTermsV2() {
     {
       term: "心房頻拍(AT)", reading: "しんぼうひんぱく",
       category: "不整脈", description: "心房内の限局した部位が異常興奮源(または小さなリエントリー回路)となって生じる頻拍。頻拍回路に房室結節を含まないため、房室ブロックが生じても頻拍自体は持続することがある点がAVNRT/AVRTと異なる。",
-      related: "PSVT, 房室ブロック", memo: "",
+      related: "PSVT, Long RP/Short RP頻拍, 完全房室ブロック(complete AV block)", memo: "",
     },
     {
       term: "順行性AVRT(Orthodromic AVRT)", reading: "じゅんこうせいえーぶいあーるてぃー",
       category: "不整脈", description: "房室結節を順行、副伝導路を逆行して旋回するAVRT。心室の興奮が正常のHis-Purkinje系を介するためQRS幅は狭い。AVRTの大部分を占める。",
-      related: "AVRT, 逆方向性AVRT, 副伝導路", memo: "",
+      related: "AVRT, 逆方向性AVRT(Antidromic AVRT), 副伝導路(Accessory pathway), Coumel's law(クメール徴候), Antidromic His capture", memo: "",
     },
     {
       term: "逆方向性AVRT(Antidromic AVRT)", reading: "ぎゃくほうこうせいえーぶいあーるてぃー",
       category: "不整脈", description: "副伝導路を順行、房室結節(または別の副伝導路)を逆行して旋回するAVRT。心室興奮が副伝導路経由となるためQRS幅は広くなり、心室頻拍との鑑別が必要になる。",
-      related: "AVRT, 順行性AVRT, マハイム線維", memo: "",
+      related: "AVRT, 順行性AVRT(Orthodromic AVRT), マハイム線維/マハイム型頻拍, 副伝導路(Accessory pathway)", memo: "",
     },
     {
       term: "マハイム線維/マハイム型頻拍", reading: "まはいむせんい",
       category: "不整脈", description: "房室結節に似た減衰伝導特性を持つ副伝導路(多くは右房室輪〜右脚方向を走行するatriofascicular fiber)。順行性伝導のみを示すことが多く、これを用いた頻拍はQRSが広く逆方向性AVRTに似た波形を示す。",
-      related: "逆方向性AVRT, 副伝導路", memo: "",
+      related: "逆方向性AVRT(Antidromic AVRT), 副伝導路(Accessory pathway)", memo: "",
     },
     {
       term: "Long RP/Short RP頻拍", reading: "ろんぐあーるぴー・しょーとあーるぴーひんぱく",
       category: "不整脈", description: "頻拍のQRSから逆行性P波までの時間(RP)がPR間隔より短いか長いかによる分類。Short RPはtypical AVNRTや順行性AVRTに多く、Long RPはatypical AVNRT・PJRT・心房頻拍などで見られ、鑑別診断の手がかりとなる。",
-      related: "AVNRT, AVRT, 心房頻拍(AT)", memo: "",
+      related: "AVNRT, AVRT, 心房頻拍(AT), スロー・ファスト型AVNRT(Typical), ファスト・スロー型/スロー・スロー型AVNRT(Atypical)", memo: "",
     },
     {
       term: "Coumel's law(クメール徴候)", reading: "くめーるちょうこう",
       category: "不整脈", description: "順行性AVRT中に副伝導路と同側の脚ブロックが出現すると、その脚を介する迂回路が長くなるため頻拍周期長とVA時間が延長する現象(VA時間で20ms超の延長がほぼ確実にAVRTを示唆)。副伝導路の左右局在診断に利用する。",
-      related: "順行性AVRT, VA time(VA interval)", memo: "出典: PubMed/JACC(2026年時点で内容確認済み)",
+      related: "順行性AVRT(Orthodromic AVRT), VA time(VA interval), 副伝導路(Accessory pathway)", memo: "出典: PubMed/JACC(2026年時点で内容確認済み)",
     },
     {
       term: "顕性WPW症候群/潜在性WPW症候群", reading: "けんせい・せんざいせいだぶりゅーぴーだぶりゅー",
       category: "不整脈", description: "洞調律時のデルタ波の有無による分類。顕性は副伝導路が順行伝導能を持ちデルタ波が出現する。潜在性(concealed)は副伝導路が逆行伝導のみでデルタ波は出現しないが、AVRTは起こしうる。",
-      related: "WPW症候群, 副伝導路", memo: "",
+      related: "WPW症候群, 副伝導路(Accessory pathway), 順行性AVRT(Orthodromic AVRT)", memo: "",
     },
     {
       term: "スロー・ファスト型AVNRT(Typical)", reading: "すろー・ふぁすとがたえーぶいえぬあーるてぃー",
       category: "不整脈", description: "遅伝導路(slow pathway)を順行、速伝導路(fast pathway)を逆行して旋回するAVNRTで、AVNRTの大部分(typical)を占める。心房と心室がほぼ同時に興奮するためRP間隔が非常に短い。",
-      related: "AVNRT, ジャンプ現象", memo: "",
+      related: "AVNRT, ジャンプ現象(AH jump), Slow pathway(遅伝導路), Fast pathway(速伝導路), Long RP/Short RP頻拍", memo: "",
     },
     {
       term: "ファスト・スロー型/スロー・スロー型AVNRT(Atypical)", reading: "あてぃぴかるえーぶいえぬあーるてぃー",
       category: "不整脈", description: "atypical AVNRTのうち、速伝導路を順行・遅伝導路を逆行するのがファスト・スロー型、2本の遅伝導路を用いるのがスロー・スロー型。いずれもLong RP頻拍を呈することが多い。",
-      related: "AVNRT, Long RP/Short RP頻拍", memo: "",
+      related: "AVNRT, Long RP/Short RP頻拍, Slow pathway(遅伝導路), Fast pathway(速伝導路), スロー・ファスト型AVNRT(Typical)", memo: "",
     },
     {
       term: "Koch三角(Koch's triangle)", reading: "こっほさんかく",
       category: "解剖", description: "三尖弁輪・Todaro腱・冠静脈洞口によって囲まれる右房内の三角形の領域。房室結節はこの三角の頂点付近に位置し、遅伝導路アブレーションの際の解剖学的な指標となる。",
-      related: "Todaro腱, 三尖弁輪(TA), 冠静脈洞(CS)", memo: "",
+      related: "Todaro腱(Tendon of Todaro), 三尖弁輪(TA), 冠静脈洞(CS), 房室結節(AV node), Slow pathway(遅伝導路), Fast pathway(速伝導路)", memo: "",
     },
     {
       term: "Todaro腱(Tendon of Todaro)", reading: "とだろけん",
       category: "解剖", description: "下大静脈弁の延長にあたる線維性の構造物で、Koch三角の一辺を形成する。房室結節・遅伝導路の位置を把握する際の目印となる。",
-      related: "Koch三角(Koch's triangle)", memo: "",
+      related: "Koch三角(Koch's triangle), 房室結節(AV node)", memo: "",
     },
     {
       term: "卵円窩(Fossa ovalis)", reading: "らんえんか",
       category: "解剖", description: "心房中隔にある膜様の陥凹部。胎児期の卵円孔の遺残構造で、左房側の手技を行う際の経中隔穿刺(transseptal puncture)の穿刺部位となる。",
-      related: "心房中隔, 経中隔穿刺", memo: "",
+      related: "僧帽弁輪(MA), 冠静脈洞(CS), 心タンポナーデ(cardiac tamponade)", memo: "",
     },
     {
       term: "三尖弁輪(TA)", reading: "さんせんべんりん",
       category: "解剖", description: "Tricuspid Annulus。右房と右室の間の弁輪部。カテーテル位置の指標や、右側副伝導路の局在診断に用いられる。",
-      related: "Koch三角(Koch's triangle), 僧帽弁輪(MA)", memo: "",
+      related: "Koch三角(Koch's triangle), 僧帽弁輪(MA), 副伝導路(Accessory pathway)", memo: "",
     },
     {
       term: "僧帽弁輪(MA)", reading: "そうぼうべんりん",
       category: "解剖", description: "Mitral Annulus。左房と左室の間の弁輪部。左側副伝導路(左自由壁など)の局在診断に用いられる。",
-      related: "三尖弁輪(TA)", memo: "",
+      related: "三尖弁輪(TA), 副伝導路(Accessory pathway), 卵円窩(Fossa ovalis)", memo: "",
     },
     {
       term: "PPI(Post-Pacing Interval)", reading: "ぽすとぺーしんぐいんたーばる",
       category: "手技・検査", description: "頻拍中にエントレインメントペーシングを行った後、最後の刺激からその部位に興奮が戻ってくるまでの時間。頻拍周期長との差(PPI-TCL)が小さいほど、その部位が頻拍回路に近い/回路上にあることを示す。",
-      related: "エントレインメント", memo: "",
+      related: "エントレインメント, VA time(VA interval)", memo: "",
     },
     {
       term: "VA time(VA interval)", reading: "ぶいえーたいむ",
       category: "手技・検査", description: "心室興奮の開始(V)から逆行性心房興奮(A)までの時間。頻拍機序の鑑別(AVNRTかAVRTかなど)や、Coumel's lawによる副伝導路局在診断に用いる。",
-      related: "Coumel's law(クメール徴候), 逆行性伝導", memo: "",
+      related: "Coumel's law(クメール徴候), 順行性伝導/逆行性伝導, Para-Hisian pacing(パラヒス電位ペーシング)", memo: "",
     },
     {
       term: "Para-Hisian pacing(パラヒス電位ペーシング)", reading: "ぱらひすぺーしんぐ",
       category: "手技・検査", description: "His束近傍を高出力でペーシングしHis-右脚を巻き込んで捕捉した状態と、出力を下げてHis-右脚の捕捉が外れた状態とで、逆行性心房興奮のタイミング・パターンを比較する手技。副伝導路を介した逆行性伝導と房室結節を介した逆行性伝導を鑑別する。",
-      related: "His束, 逆行性伝導, 副伝導路", memo: "出典: Circulation 1996, JACC EP 2019(2026年時点で内容確認済み)",
+      related: "His束, 順行性伝導/逆行性伝導, 副伝導路(Accessory pathway), 差動性ペーシング(Differential pacing), VA time(VA interval)", memo: "出典: Circulation 1996, JACC EP 2019(2026年時点で内容確認済み)",
     },
     {
       term: "差動性ペーシング(Differential pacing)", reading: "さどうせいぺーしんぐ",
       category: "手技・検査", description: "異なる部位(例: 右室心尖部と右室基部近傍)からペーシングし、逆行性伝導の応答(タイミングやパターン)の違いを比較する手技。副伝導路の関与を評価する際などに用いられる。",
-      related: "Para-Hisian pacing(パラヒス電位ペーシング)", memo: "",
+      related: "Para-Hisian pacing(パラヒス電位ペーシング), 順行性伝導/逆行性伝導", memo: "",
     },
     {
       term: "デクリメンタルペーシング/バーストペーシング", reading: "でくりめんたる・ばーすとぺーしんぐ",
       category: "手技・検査", description: "刺激周期を段階的に短くしていく漸増式の刺激(デクリメンタルペーシング)と、一定の速いレートで連続的に刺激するバーストペーシングの総称。頻拍の誘発や停止、伝導特性の評価に用いる。",
-      related: "プログラム電気刺激(PES)", memo: "",
+      related: "プログラム電気刺激(PES)/期外刺激, エントレインメント, Wenckebach周期長(AVN Wenckebach cycle length)", memo: "",
     },
     {
       term: "プログラム電気刺激(PES)/期外刺激", reading: "ぷろぐらむでんきしげき",
       category: "手技・検査", description: "Programmed Electrical Stimulation。一定の基本周期(S1)で刺激した後、連結期を段階的に短縮した期外刺激(S2, S3…)を加える手法。不応期の測定や頻拍の誘発に用いる。",
-      related: "ERP(有効不応期), ジャンプ現象", memo: "",
+      related: "ERP(有効不応期), ジャンプ現象(AH jump), デクリメンタルペーシング/バーストペーシング, エコー心拍(echo beat)", memo: "",
     },
     {
       term: "AH時間", reading: "えーえいちじかん",
       category: "生理検査", description: "心房電位(A)からHis電位(H)までの伝導時間。房室結節の伝導時間を反映し、房室結節の伝導特性評価やジャンプ現象の判定に用いる。",
-      related: "His束, HV時間, ジャンプ現象", memo: "",
+      related: "His束, HV時間, ジャンプ現象(AH jump), 房室結節(AV node)", memo: "",
     },
     {
       term: "HV時間", reading: "えいちぶいじかん",
@@ -195,52 +195,52 @@ function seedTermsV2() {
     {
       term: "Wenckebach周期長(AVN Wenckebach cycle length)", reading: "うぇんけばっはしゅうきちょう",
       category: "生理検査", description: "心房を漸増ペーシングした際に、房室結節でウェンケバッハ型の伝導遅延・ブロックが出現し始める最長の刺激周期長。房室結節の伝導能を評価する指標の一つ。",
-      related: "房室結節, デクリメンタルペーシング/バーストペーシング", memo: "",
+      related: "房室結節(AV node), デクリメンタルペーシング/バーストペーシング, ERP(有効不応期)", memo: "",
     },
     {
       term: "ジャンプ現象(AH jump)", reading: "じゃんぷげんしょう",
       category: "生理検査", description: "期外刺激の連結期をわずかに短縮させた際に、AH時間が急激に(目安として50ms以上)延長する現象。速伝導路から遅伝導路への伝導の切り替わりを示し、二重房室結節伝導路(dual AV nodal physiology)の存在を示唆する。",
-      related: "AH時間, AVNRT, エコー心拍", memo: "",
+      related: "AH時間, AVNRT, エコー心拍(echo beat), Slow pathway(遅伝導路), Fast pathway(速伝導路)", memo: "",
     },
     {
       term: "エコー心拍(echo beat)", reading: "えこーしんぱく",
       category: "生理検査", description: "期外刺激後に、房室結節内の二重伝導路や副伝導路を介したリエントリーによって生じる単発の心拍。連続すればAVNRT/AVRTとして頻拍が持続する。",
-      related: "ジャンプ現象(AH jump), AVNRT", memo: "",
+      related: "ジャンプ現象(AH jump), AVNRT, プログラム電気刺激(PES)/期外刺激", memo: "",
     },
     {
       term: "順行性伝導/逆行性伝導", reading: "じゅんこうせい・ぎゃっこうせいでんどう",
       category: "生理検査", description: "心房から心室へ向かう伝導を順行性(antegrade)、心室から心房へ向かう伝導を逆行性(retrograde)と呼ぶ。副伝導路や房室結節がどちらの向きに伝導能を持つかは、頻拍の機序診断において重要。",
-      related: "副伝導路, 房室結節", memo: "",
+      related: "副伝導路(Accessory pathway), 房室結節(AV node), Para-Hisian pacing(パラヒス電位ペーシング), VA time(VA interval)", memo: "",
     },
     {
       term: "クライオアブレーション(cryoablation)", reading: "くらいおあぶれーしょん",
       category: "手技・検査", description: "カテーテル先端を冷却して組織を凝固させるアブレーション法。可逆的な冷却(cryomapping)で効果を確認してから本焼灼できる点が特徴で、房室ブロックのリスクを抑えたい遅伝導路アブレーションなどで選択されることがある。",
-      related: "高周波アブレーション(RFカテーテルアブレーション), 完全房室ブロック", memo: "",
+      related: "高周波アブレーション(RFカテーテルアブレーション), 完全房室ブロック(complete AV block), Slow pathway(遅伝導路)", memo: "",
     },
     {
       term: "高周波アブレーション(RFカテーテルアブレーション)", reading: "こうしゅうはあぶれーしょん",
       category: "手技・検査", description: "カテーテル先端から高周波(RF)電流を流し、抵抗熱により組織を熱凝固させるアブレーション法。PSVTアブレーションで広く用いられる標準的な方法。",
-      related: "クライオアブレーション(cryoablation), インピーダンス", memo: "",
+      related: "クライオアブレーション(cryoablation), インピーダンス(通電時)", memo: "",
     },
     {
       term: "インピーダンス(通電時)", reading: "いんぴーだんす",
       category: "手技・検査", description: "通電中のカテーテル先端-組織間の電気抵抗値。急激な低下・上昇は組織の炭化や血栓形成、パーフォレーションなどの異常を示唆することがあり、通電中モニタリングされる重要な指標。",
-      related: "高周波アブレーション(RFカテーテルアブレーション)", memo: "",
+      related: "高周波アブレーション(RFカテーテルアブレーション), 心タンポナーデ(cardiac tamponade)", memo: "",
     },
     {
       term: "完全房室ブロック(complete AV block)", reading: "かんぜんぼうしつぶろっく",
       category: "合併症", description: "心房から心室への伝導が完全に途絶した状態。遅伝導路アブレーション(AVNRT)や中隔部の副伝導路アブレーションで、房室結節・His束周辺への熱障害により生じうる重篤な合併症で、恒久ペースメーカ植込みが必要になることがある。",
-      related: "AVNRT, His束, クライオアブレーション(cryoablation)", memo: "",
+      related: "AVNRT, His束, Fast pathway(速伝導路), クライオアブレーション(cryoablation)", memo: "",
     },
     {
       term: "心タンポナーデ(cardiac tamponade)", reading: "しんたんぽなーで",
       category: "合併症", description: "心嚢内に血液などが急速に貯留し、心臓の拡張が妨げられて循環動態が悪化する状態。カテーテル操作や通電による心穿孔などで生じうる、緊急対応を要する合併症。",
-      related: "", memo: "",
+      related: "インピーダンス(通電時), 卵円窩(Fossa ovalis), 血管迷走神経反射(vasovagal reaction)", memo: "",
     },
     {
       term: "血管迷走神経反射(vasovagal reaction)", reading: "けっかんめいそうしんけいはんしゃ",
       category: "合併症", description: "疼痛・不安・穿刺刺激などの誘因で迷走神経が興奮し、徐脈・血圧低下を来す反応。穿刺時や頻拍停止直後などに見られることがある。",
-      related: "", memo: "",
+      related: "完全房室ブロック(complete AV block), 心タンポナーデ(cardiac tamponade)", memo: "",
     },
   ];
 }
@@ -251,7 +251,7 @@ function seedTermsV3() {
       term: "Orthodromic His capture", reading: "おーそどろみっくひすほかく",
       category: "手技・検査",
       description: "AVNRTのエントレインメント中に、His電位記録カテーテルが同時にとらえている局所心房電位が、頻拍自身の興奮伝播と同じ経路・向き(順方向≒orthodromic)で捕捉される現象。これが確認できると、頻拍回路とHis記録部位の間に「上部共通路(upper common pathway)」が存在しないことを示唆し、AVNRTの回路構造を推定する手がかりになる。なお、AVRTのエントレインメント中に心室からの逆行性伝導でHis電位自体が先に捕捉される現象は区別して「antidromic His capture」と呼ばれる。",
-      related: "エントレインメント, His束, AVNRT, PPI(Post-Pacing Interval), Antidromic His capture",
+      related: "エントレインメント, His束, AVNRT, PPI(Post-Pacing Interval), Antidromic His capture, 順行性AVRT(Orthodromic AVRT)",
       memo: "出典: Circulation 1993「Orthodromic capture of the atrial electrogram during transient entrainment of AVNRT」、Wiley PACE/JCE「Antidromic His capture during entrainment of orthodromic AVRT」(2026年時点で要旨を確認)",
     },
   ];
@@ -263,7 +263,7 @@ function seedTermsV4() {
       term: "Antidromic His capture", reading: "あんちどろみっくひすほかく",
       category: "手技・検査",
       description: "順行性AVRT(Orthodromic AVRT)を心室からのオーバードライブペーシングでエントレインメントする際に、His電位がペーシング部位からHis-Purkinje系を逆行性に(頻拍回路自体の伝導方向とは逆の\"antidromic\"な向きで)先に捕捉されてしまう現象。この場合H-H間隔がA-A間隔よりも先にペーシングへ同調してしまい、あたかもAVNRTのような所見を呈することがあるため、頻拍機序を誤診断しかねない診断上の落とし穴として知られる。",
-      related: "Orthodromic His capture, エントレインメント, His束, 順行性AVRT(Orthodromic AVRT), AVNRT",
+      related: "Orthodromic His capture, エントレインメント, His束, 順行性AVRT(Orthodromic AVRT), AVNRT, PPI(Post-Pacing Interval)",
       memo: "出典: Nair et al., PACE 2010「Antidromic His Capture during Entrainment of Orthodromic AVRT」、Nair et al., J Cardiovasc Electrophysiol 2021「Antidromic His capture during ventricular entrainment of an orthodromic AVRT. What is the mechanism?」(2026年時点で要旨を確認)",
     },
   ];
@@ -275,14 +275,33 @@ function seedTermsV5() {
       term: "Slow pathway(遅伝導路)", reading: "すろーぱすうぇい",
       category: "解剖",
       description: "房室結節の二重伝導路のうち、伝導速度は遅いが不応期が短い経路。Koch三角内でコンパクトAV結節よりも後下方、冠静脈洞口寄り・三尖弁輪に沿った領域を走行する。typical(スロー・ファスト型)AVNRTでは順行性の伝導路として頻拍回路の一部を担い、AVNRTのカテーテルアブレーションではこの遅伝導路を焼灼して頻拍を根治する。",
-      related: "Fast pathway(速伝導路), AVNRT, Koch三角(Koch's triangle), ジャンプ現象(AH jump)",
+      related: "Fast pathway(速伝導路), AVNRT, Koch三角(Koch's triangle), ジャンプ現象(AH jump), 房室結節(AV node), スロー・ファスト型AVNRT(Typical)",
       memo: "",
     },
     {
       term: "Fast pathway(速伝導路)", reading: "ふぁすとぱすうぇい",
       category: "解剖",
       description: "房室結節の二重伝導路のうち、伝導速度は速いが不応期が長い経路。Koch三角の頂点付近、コンパクトAV結節・His束に近い前中隔寄りを走行する。typical AVNRTでは逆行性の伝導路として頻拍回路の一部を担う。His束・コンパクトAV結節に近接するため、この経路そのものを焼灼しようとすると完全房室ブロックのリスクが高く、通常アブレーションの標的にはしない。",
-      related: "Slow pathway(遅伝導路), AVNRT, Koch三角(Koch's triangle), His束, 完全房室ブロック(complete AV block)",
+      related: "Slow pathway(遅伝導路), AVNRT, Koch三角(Koch's triangle), His束, 完全房室ブロック(complete AV block), 房室結節(AV node)",
+      memo: "",
+    },
+  ];
+}
+
+function seedTermsV6() {
+  return [
+    {
+      term: "房室結節(AV node)", reading: "ぼうしつけっせつ",
+      category: "解剖",
+      description: "右房下部、Koch三角の頂点付近に存在する特殊心筋の集塊。心房から心室への興奮伝導を仲介する通常唯一の生理的な伝導路で、伝導速度を意図的に遅らせるフィルターとして働く。しばしば内部にslow pathway・fast pathwayの二重伝導路を持ち、これがAVNRTの発生基盤となる。",
+      related: "His束, Slow pathway(遅伝導路), Fast pathway(速伝導路), Koch三角(Koch's triangle), AVNRT, AH時間, Wenckebach周期長(AVN Wenckebach cycle length)",
+      memo: "",
+    },
+    {
+      term: "副伝導路(Accessory pathway)", reading: "ふくでんどうろ",
+      category: "解剖",
+      description: "正常の房室結節-His束系とは別に、心房と心室を直接つなぐ先天性の異常伝導路。代表的なものはKent束で、房室弁輪に沿ってどこにでも存在しうる。房室結節のような減衰伝導特性を持たず速く伝導するため、順行伝導能があれば洞調律時にデルタ波・PQ短縮(WPW症候群)を来し、AVRTの発生基盤となる。マハイム線維は例外的に房室結節様の減衰伝導特性を持つ副伝導路。",
+      related: "WPW症候群, AVRT, 順行性AVRT(Orthodromic AVRT), 逆方向性AVRT(Antidromic AVRT), マハイム線維/マハイム型頻拍, 三尖弁輪(TA), 僧帽弁輪(MA), 顕性WPW症候群/潜在性WPW症候群",
       memo: "",
     },
   ];
@@ -292,28 +311,39 @@ function withIds(termList) {
   return termList.map((t) => ({ id: uid(), memo: "", related: "", personalNote: "", image: "", ...t, updatedAt: nowStr() }));
 }
 
-// バージョンごとの追加用語リスト。新しいバッチを追加するときはCURRENT_TERMS_SEED_VERSIONを
-// 上げてSEED_BATCHESに {version, fn} を追記する。
-const SEED_BATCHES = [
-  { version: 1, fn: seedTermsV1 },
-  { version: 2, fn: seedTermsV2 },
-  { version: 3, fn: seedTermsV3 },
-  { version: 4, fn: seedTermsV4 },
-  { version: 5, fn: seedTermsV5 },
-];
+// 追加用語のバッチ一覧。新しい用語を増やすときはここに関数を足す。
+// CURRENT_TERMS_SEED_VERSIONを上げると、次回起動時に既存データへ
+// (1)未登録の用語の追加 と (2)関連用語欄の追記マージ が行われる。
+const SEED_BATCH_FNS = [seedTermsV1, seedTermsV2, seedTermsV3, seedTermsV4, seedTermsV5, seedTermsV6];
 
-// 既存データに現行バージョンまでの追加用語をマージする。用語名(大文字小文字を無視)が
-// 一致するものは既存(ユーザーが編集済みの可能性がある)を優先し、上書きしない。
-function mergeSeedTerms(existingTerms, seedVersion) {
-  const existingNames = new Set(existingTerms.map((t) => (t.term || "").trim().toLowerCase()));
+function mergeRelated(currentRelated, additionalRelated) {
+  const list = (currentRelated || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const seen = new Set(list.map((s) => s.toLowerCase()));
+  (additionalRelated || "").split(",").map((s) => s.trim()).filter(Boolean).forEach((r) => {
+    if (!seen.has(r.toLowerCase())) {
+      list.push(r);
+      seen.add(r.toLowerCase());
+    }
+  });
+  return list.join(", ");
+}
+
+// 既存データに、収録済みの全用語データを付き合わせる。
+// 未登録の用語名は新規追加し、既存の用語は関連用語欄だけを追記マージする
+// (解説・自分の理解メモ・出典など、ユーザーが書いた/編集した可能性のある項目は上書きしない)。
+function mergeSeedTerms(existingTerms) {
+  const byName = new Map(existingTerms.map((t) => [(t.term || "").trim().toLowerCase(), t]));
   const merged = [...existingTerms];
-  SEED_BATCHES.filter((b) => b.version > seedVersion).forEach((b) => {
-    withIds(b.fn()).forEach((t) => {
-      if (!existingNames.has(t.term.trim().toLowerCase())) {
-        merged.push(t);
-        existingNames.add(t.term.trim().toLowerCase());
-      }
-    });
+  SEED_BATCH_FNS.flatMap((fn) => fn()).forEach((seedTerm) => {
+    const key = seedTerm.term.trim().toLowerCase();
+    const existing = byName.get(key);
+    if (!existing) {
+      const created = withIds([seedTerm])[0];
+      merged.push(created);
+      byName.set(key, created);
+    } else {
+      existing.related = mergeRelated(existing.related, seedTerm.related);
+    }
   });
   return merged;
 }
@@ -321,7 +351,7 @@ function mergeSeedTerms(existingTerms, seedVersion) {
 function defaultState() {
   return {
     termsSeedVersion: CURRENT_TERMS_SEED_VERSION,
-    terms: withIds(SEED_BATCHES.flatMap((b) => b.fn())),
+    terms: withIds(SEED_BATCH_FNS.flatMap((fn) => fn())),
     rmc: [
       { id: uid(), name: "基本設定", items: [] },
       { id: uid(), name: "フィルタ設定", items: [] },
@@ -348,7 +378,7 @@ function loadState() {
     if (!parsed.terms || !parsed.rmc || !parsed.notes || !parsed.scratch) throw new Error("invalid");
     const seedVersion = parsed.termsSeedVersion || 1;
     if (seedVersion < CURRENT_TERMS_SEED_VERSION) {
-      parsed.terms = mergeSeedTerms(parsed.terms, seedVersion);
+      parsed.terms = mergeSeedTerms(parsed.terms);
       parsed.termsSeedVersion = CURRENT_TERMS_SEED_VERSION;
     }
     return parsed;
