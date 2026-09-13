@@ -246,7 +246,7 @@ function seedTermsV2() {
 }
 
 function withIds(termList) {
-  return termList.map((t) => ({ id: uid(), memo: "", related: "", ...t, updatedAt: nowStr() }));
+  return termList.map((t) => ({ id: uid(), memo: "", related: "", personalNote: "", ...t, updatedAt: nowStr() }));
 }
 
 // 既存データにv2以降で追加した用語をマージする。用語名(大文字小文字を無視)が
@@ -350,7 +350,8 @@ function matchRank(t, query) {
   if ((t.related || "").toLowerCase().includes(query)) return 5;
   if ((t.category || "").toLowerCase().includes(query)) return 6;
   if ((t.description || "").toLowerCase().includes(query)) return 7;
-  return 8;
+  if ((t.personalNote || "").toLowerCase().includes(query)) return 8;
+  return 9;
 }
 
 function renderTerms() {
@@ -360,7 +361,7 @@ function renderTerms() {
   const items = [...state.terms]
     .filter((t) => {
       if (!query) return true;
-      return [t.term, t.reading, t.description, t.related, t.category]
+      return [t.term, t.reading, t.description, t.related, t.category, t.personalNote]
         .some((f) => (f || "").toLowerCase().includes(query));
     })
     .sort((a, b) => {
@@ -396,7 +397,8 @@ function renderTerms() {
         </div>
         <div class="card-body">${highlightText(t.description, rawQuery)}</div>
         ${t.related ? `<p class="card-meta">関連: ${highlightText(t.related, rawQuery)}</p>` : ""}
-        ${t.memo ? `<p class="card-meta">メモ: ${escapeHtml(t.memo)}</p>` : ""}
+        ${t.memo ? `<p class="card-meta">出典・参考: ${escapeHtml(t.memo)}</p>` : ""}
+        ${t.personalNote ? `<div class="personal-note"><span class="personal-note-label">📝 自分の理解メモ</span>${highlightText(t.personalNote, rawQuery)}</div>` : ""}
       </div>
     `).join("");
   }
@@ -417,7 +419,7 @@ function closeTermForm() {
 function renderTermForm() {
   const area = document.getElementById("term-form-area");
   if (!termFormState) { area.innerHTML = ""; return; }
-  let data = { term: termFormState.prefillTerm || "", reading: "", category: "", description: termFormState.prefillDescription || "", related: "", memo: "" };
+  let data = { term: termFormState.prefillTerm || "", reading: "", category: "", description: termFormState.prefillDescription || "", related: "", memo: "", personalNote: "" };
   if (termFormState.mode === "edit") {
     const t = state.terms.find((x) => x.id === termFormState.id);
     if (t) data = { ...t };
@@ -445,8 +447,12 @@ function renderTermForm() {
         <input type="text" id="f-related" value="${escapeHtml(data.related)}" placeholder="カンマ区切り">
       </div>
       <div class="form-row">
-        <label>メモ・出典</label>
-        <input type="text" id="f-memo" value="${escapeHtml(data.memo)}">
+        <label>出典・参考</label>
+        <input type="text" id="f-memo" value="${escapeHtml(data.memo)}" placeholder="調べた文献・サイトなど">
+      </div>
+      <div class="form-row">
+        <label>📝 自分の理解メモ(任意)</label>
+        <textarea id="f-personal-note" rows="3" placeholder="自分の言葉で言い換え・覚え方・実感したことなど">${escapeHtml(data.personalNote)}</textarea>
       </div>
       <div class="form-actions">
         <button class="btn btn-secondary" onclick="closeTermForm()">キャンセル</button>
@@ -466,6 +472,7 @@ function saveTermForm() {
     description: document.getElementById("f-description").value.trim(),
     related: document.getElementById("f-related").value.trim(),
     memo: document.getElementById("f-memo").value.trim(),
+    personalNote: document.getElementById("f-personal-note").value.trim(),
     updatedAt: nowStr(),
   };
   if (termFormState.mode === "edit") {
