@@ -19,6 +19,17 @@ function escapeHtml(str) {
   }[c]));
 }
 
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// エスケープ済みテキストに対して検索語を <mark> でハイライトする
+function highlightText(str, query) {
+  const escaped = escapeHtml(str);
+  if (!query) return escaped;
+  return escaped.replace(new RegExp(escapeRegExp(escapeHtml(query)), "ig"), (m) => `<mark>${m}</mark>`);
+}
+
 function defaultState() {
   return {
     terms: [
@@ -126,8 +137,25 @@ document.getElementById("tabs").addEventListener("click", (e) => {
 
 let termFormState = null; // { mode: 'add'|'edit', id? , prefill? }
 
+// 用語名の完全一致・前方一致を優先し、それ以外は他フィールドの一致順に並べる
+// (PCI/EVTの検索アプリのように、探している語を上位に出す)
+function matchRank(t, query) {
+  const term = (t.term || "").toLowerCase();
+  const reading = (t.reading || "").toLowerCase();
+  if (term === query) return 0;
+  if (term.startsWith(query)) return 1;
+  if (reading.startsWith(query)) return 2;
+  if (term.includes(query)) return 3;
+  if (reading.includes(query)) return 4;
+  if ((t.related || "").toLowerCase().includes(query)) return 5;
+  if ((t.category || "").toLowerCase().includes(query)) return 6;
+  if ((t.description || "").toLowerCase().includes(query)) return 7;
+  return 8;
+}
+
 function renderTerms() {
-  const query = document.getElementById("term-search").value.trim().toLowerCase();
+  const rawQuery = document.getElementById("term-search").value.trim();
+  const query = rawQuery.toLowerCase();
   const list = document.getElementById("term-list");
   const items = [...state.terms]
     .filter((t) => {
@@ -135,25 +163,39 @@ function renderTerms() {
       return [t.term, t.reading, t.description, t.related, t.category]
         .some((f) => (f || "").toLowerCase().includes(query));
     })
-    .sort((a, b) => (a.reading || a.term).localeCompare(b.reading || b.term, "ja"));
+    .sort((a, b) => {
+      if (query) {
+        const diff = matchRank(a, query) - matchRank(b, query);
+        if (diff !== 0) return diff;
+      }
+      return (a.reading || a.term).localeCompare(b.reading || b.term, "ja");
+    });
 
   if (items.length === 0) {
-    list.innerHTML = `<p class="empty-hint">まだ用語が登録されていません。「＋ 用語を追加」から登録してください。</p>`;
+    if (query) {
+      list.innerHTML = `
+        <div class="empty-hint">
+          <p>「${escapeHtml(rawQuery)}」に一致する用語は登録されていません。</p>
+          <button class="btn btn-primary btn-small" onclick="openTermForm('add', null, '', '${escapeHtml(rawQuery)}')">「${escapeHtml(rawQuery)}」を新しい用語として追加</button>
+        </div>`;
+    } else {
+      list.innerHTML = `<p class="empty-hint">まだ用語が登録されていません。「＋ 用語を追加」から登録してください。</p>`;
+    }
   } else {
     list.innerHTML = items.map((t) => `
       <div class="card">
         <div class="card-head">
           <div>
-            <p class="card-title">${escapeHtml(t.term)}</p>
-            <p class="card-meta">${t.reading ? escapeHtml(t.reading) + " ・ " : ""}${t.category ? `<span class="card-badge">${escapeHtml(t.category)}</span>` : ""}更新: ${escapeHtml(t.updatedAt)}</p>
+            <p class="card-title">${highlightText(t.term, rawQuery)}</p>
+            <p class="card-meta">${t.reading ? highlightText(t.reading, rawQuery) + " ・ " : ""}${t.category ? `<span class="card-badge">${escapeHtml(t.category)}</span>` : ""}更新: ${escapeHtml(t.updatedAt)}</p>
           </div>
           <div class="card-actions">
             <button class="btn btn-secondary btn-small" onclick="openTermForm('edit','${t.id}')">編集</button>
             <button class="btn btn-danger btn-small" onclick="deleteTerm('${t.id}')">削除</button>
           </div>
         </div>
-        <div class="card-body">${escapeHtml(t.description)}</div>
-        ${t.related ? `<p class="card-meta">関連: ${escapeHtml(t.related)}</p>` : ""}
+        <div class="card-body">${highlightText(t.description, rawQuery)}</div>
+        ${t.related ? `<p class="card-meta">関連: ${highlightText(t.related, rawQuery)}</p>` : ""}
         ${t.memo ? `<p class="card-meta">メモ: ${escapeHtml(t.memo)}</p>` : ""}
       </div>
     `).join("");
@@ -161,8 +203,8 @@ function renderTerms() {
   renderTermForm();
 }
 
-function openTermForm(mode, id, prefillDescription) {
-  termFormState = { mode, id, prefillDescription };
+function openTermForm(mode, id, prefillDescription, prefillTerm) {
+  termFormState = { mode, id, prefillDescription, prefillTerm };
   renderTermForm();
   document.getElementById("term-form-area").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -175,7 +217,7 @@ function closeTermForm() {
 function renderTermForm() {
   const area = document.getElementById("term-form-area");
   if (!termFormState) { area.innerHTML = ""; return; }
-  let data = { term: "", reading: "", category: "", description: termFormState.prefillDescription || "", related: "", memo: "" };
+  let data = { term: termFormState.prefillTerm || "", reading: "", category: "", description: termFormState.prefillDescription || "", related: "", memo: "" };
   if (termFormState.mode === "edit") {
     const t = state.terms.find((x) => x.id === termFormState.id);
     if (t) data = { ...t };

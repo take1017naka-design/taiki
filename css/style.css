@@ -190,6 +190,9 @@ main { max-width: 900px; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
 .scratch-status.resolved { background: #e8f5ee; color: var(--color-accent); }
 
 .empty-hint { color: var(--color-text-muted); font-size: 0.85rem; padding: 0.5rem 0; }
+.empty-hint .btn { margin-top: 0.5rem; }
+
+mark { background: #fff1a8; color: inherit; border-radius: 3px; padding: 0 0.1em; }
 
 .data-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .data-status { font-size: 0.85rem; color: var(--color-text-muted); }
