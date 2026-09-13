@@ -32,7 +32,7 @@ function highlightText(str, query) {
 
 // 用語辞書の初期収録データ。version番号を上げて配列を追加すると、
 // 既にlocalStorageにデータがある端末にも次回起動時に自動で追記される(mergeSeedTerms参照)。
-const CURRENT_TERMS_SEED_VERSION = 7;
+const CURRENT_TERMS_SEED_VERSION = 8;
 
 function seedTermsV1() {
   return [
@@ -313,15 +313,27 @@ function seedTermsV7() {
       term: "High(フィルタ)/Low(フィルタ)", reading: "はい・ろーふぃるた",
       category: "機器",
       description: "ポリグラフ(生体アンプ)の周波数特性を決めるバンドパスフィルタの上限・下限カットオフ周波数の設定。「High」は通過帯域の上限周波数を指し、これより高い周波数成分を減衰させる(実質的にハイカット/ローパスとして働く)。「Low」は通過帯域の下限周波数を指し、これより低い周波数成分を減衰させる(実質的にローカット/ハイパスとして働く)。体表面心電図は基線動揺を抑えるため比較的低め(例: Low 0.05〜1Hz、High 40〜100Hz程度)、心内心電図やHis電位のような近距離電位は鋭い波形を見るため両方とも高め(例: Low 30〜50Hz、High 250〜500Hz程度)に設定することが多い。名称の「High/Low」は遮断される周波数帯そのものではなく通過帯域の上限・下限を表す点に注意。",
-      related: "RMC-4000(CARDIO MASTER), His束, AH時間",
+      related: "RMC-4000(CARDIO MASTER), RMC-5000, His束, AH時間",
       memo: "出典: 心電図.com「フィルタとは？」ほか一般的なEPS用ポリグラフのフィルタ設定解説(2026年時点で内容確認)",
     },
     {
       term: "RMC-4000(CARDIO MASTER)", reading: "あーるえむしーよんせん",
       category: "機器",
       description: "日本光電工業製の臨床用ポリグラフ(電気生理学的検査・心臓カテーテル検査用の多チャンネル生体情報記録装置)。体表面心電図・心内心電図・血行動態(圧)情報などを同時に記録・表示し、EPSやカテーテルアブレーション手技中のモニタリングに用いる。2015年6月発売の後継機種「RMC-5000」に置き換えられている。",
-      related: "High(フィルタ)/Low(フィルタ)",
+      related: "High(フィルタ)/Low(フィルタ), RMC-5000",
       memo: "出典: PMDA医療機器情報(承認番号21700BZZ00341000)、日本光電ニュースリリース「臨床用ポリグラフRMC-5000新発売」(2015年6月)(2026年時点で確認)",
+    },
+  ];
+}
+
+function seedTermsV8() {
+  return [
+    {
+      term: "RMC-5000", reading: "あーるえむしーごせん",
+      category: "機器",
+      description: "日本光電工業製の臨床用ポリグラフで、RMC-4000の後継機種(2015年6月発売)。心電図・観血/非観血血圧・心拍出量・SpO2などの基本測定に加え、導出18誘導心電図(synECi18)、心内心電図、呼吸、体温、CO2、BISなど多様な測定項目に対応する。同時圧・引抜き圧・FFR測定などカテーテル検査に特化した操作性、上下限アラーム/テクニカルアラーム、操作室と心カテ室を分けて操作できるリモートユニット機能などを備える。",
+      related: "RMC-4000(CARDIO MASTER), High(フィルタ)/Low(フィルタ)",
+      memo: "出典: 日本光電 製品ページ「臨床用ポリグラフ RMC-5000」、日本光電ニュースリリース(2015年6月)(2026年時点で確認)",
     },
   ];
 }
@@ -333,7 +345,7 @@ function withIds(termList) {
 // 追加用語のバッチ一覧。新しい用語を増やすときはここに関数を足す。
 // CURRENT_TERMS_SEED_VERSIONを上げると、次回起動時に既存データへ
 // (1)未登録の用語の追加 と (2)関連用語欄の追記マージ が行われる。
-const SEED_BATCH_FNS = [seedTermsV1, seedTermsV2, seedTermsV3, seedTermsV4, seedTermsV5, seedTermsV6, seedTermsV7];
+const SEED_BATCH_FNS = [seedTermsV1, seedTermsV2, seedTermsV3, seedTermsV4, seedTermsV5, seedTermsV6, seedTermsV7, seedTermsV8];
 
 function mergeRelated(currentRelated, additionalRelated) {
   const list = (currentRelated || "").split(",").map((s) => s.trim()).filter(Boolean);
