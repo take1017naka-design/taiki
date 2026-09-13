@@ -32,7 +32,7 @@ function highlightText(str, query) {
 
 // 用語辞書の初期収録データ。version番号を上げて配列を追加すると、
 // 既にlocalStorageにデータがある端末にも次回起動時に自動で追記される(mergeSeedTerms参照)。
-const CURRENT_TERMS_SEED_VERSION = 2;
+const CURRENT_TERMS_SEED_VERSION = 3;
 
 function seedTermsV1() {
   return [
@@ -245,30 +245,50 @@ function seedTermsV2() {
   ];
 }
 
+function seedTermsV3() {
+  return [
+    {
+      term: "Orthodromic His capture", reading: "おーそどろみっくひすほかく",
+      category: "手技・検査",
+      description: "AVNRTのエントレインメント中に、His電位記録カテーテルが同時にとらえている局所心房電位が、頻拍自身の興奮伝播と同じ経路・向き(順方向≒orthodromic)で捕捉される現象。これが確認できると、頻拍回路とHis記録部位の間に「上部共通路(upper common pathway)」が存在しないことを示唆し、AVNRTの回路構造を推定する手がかりになる。なお、AVRTのエントレインメント中に心室からの逆行性伝導でHis電位自体が先に捕捉される現象は区別して「antidromic His capture」と呼ばれる。",
+      related: "エントレインメント, His束, AVNRT, PPI(Post-Pacing Interval)",
+      memo: "出典: Circulation 1993「Orthodromic capture of the atrial electrogram during transient entrainment of AVNRT」、Wiley PACE/JCE「Antidromic His capture during entrainment of orthodromic AVRT」(2026年時点で要旨を確認)",
+    },
+  ];
+}
+
 function withIds(termList) {
   return termList.map((t) => ({ id: uid(), memo: "", related: "", personalNote: "", image: "", ...t, updatedAt: nowStr() }));
 }
 
-// 既存データにv2以降で追加した用語をマージする。用語名(大文字小文字を無視)が
+// バージョンごとの追加用語リスト。新しいバッチを追加するときはCURRENT_TERMS_SEED_VERSIONを
+// 上げてSEED_BATCHESに {version, fn} を追記する。
+const SEED_BATCHES = [
+  { version: 1, fn: seedTermsV1 },
+  { version: 2, fn: seedTermsV2 },
+  { version: 3, fn: seedTermsV3 },
+];
+
+// 既存データに現行バージョンまでの追加用語をマージする。用語名(大文字小文字を無視)が
 // 一致するものは既存(ユーザーが編集済みの可能性がある)を優先し、上書きしない。
 function mergeSeedTerms(existingTerms, seedVersion) {
   const existingNames = new Set(existingTerms.map((t) => (t.term || "").trim().toLowerCase()));
   const merged = [...existingTerms];
-  if (seedVersion < 2) {
-    withIds(seedTermsV2()).forEach((t) => {
+  SEED_BATCHES.filter((b) => b.version > seedVersion).forEach((b) => {
+    withIds(b.fn()).forEach((t) => {
       if (!existingNames.has(t.term.trim().toLowerCase())) {
         merged.push(t);
         existingNames.add(t.term.trim().toLowerCase());
       }
     });
-  }
+  });
   return merged;
 }
 
 function defaultState() {
   return {
     termsSeedVersion: CURRENT_TERMS_SEED_VERSION,
-    terms: withIds(seedTermsV1().concat(seedTermsV2())),
+    terms: withIds(SEED_BATCHES.flatMap((b) => b.fn())),
     rmc: [
       { id: uid(), name: "基本設定", items: [] },
       { id: uid(), name: "フィルタ設定", items: [] },
