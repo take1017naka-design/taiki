@@ -413,10 +413,23 @@ function rmcSeedItemsV2() {
 const RMC_SEED_BATCH_FNS = [rmcSeedItemsV1, rmcSeedItemsV2];
 const CURRENT_RMC_SEED_VERSION = 2;
 
+function notesSeedItemsV1() {
+  return [
+    {
+      category: "Tips・注意点",
+      title: "PPI-TCL比較で精度を出すコツ",
+      content: "・基準点をペーシングスパイクとその後の同一電極の局所興奮に固定: PPI計測はペーシング最終スパイクから次の自己興奮(同一部位・同一極性の成分)までなので、基準点の選び方を毎回完全に同一にすることが最優先。ペーシング前のTCL計測時と全く同じ成分(同じ極性・同じ鋭さの棘)を追う。\n・ペーシング直前の安定した数拍でTCLを確定させておく: 頻拍が安定している区間(理想的には最低4-8拍)で先にTCLを測っておき、ペーシング後の1拍のPPIとの比較に専念する。ペーシング中に慌てて基準点を探さなくて済む。",
+    },
+  ];
+}
+
+const NOTES_SEED_BATCH_FNS = [notesSeedItemsV1];
+const CURRENT_NOTES_SEED_VERSION = 1;
+
 // 既存カテゴリに一致する名前があれば項目を追記し(同名タイトルは重複させない)、
-// なければ新しい大項目として追加する。
-function mergeRmcSeedItems(categories) {
-  RMC_SEED_BATCH_FNS.flatMap((fn) => fn()).forEach((seedItem) => {
+// なければ新しい大項目として追加する。RMCメモ・自分用メモ共通のロジック。
+function mergeCategorySeedItems(categories, seedBatchFns) {
+  seedBatchFns.flatMap((fn) => fn()).forEach((seedItem) => {
     let cat = categories.find((c) => c.name === seedItem.category);
     if (!cat) {
       cat = { id: uid(), name: seedItem.category, items: [] };
@@ -435,20 +448,21 @@ function defaultState() {
     termsSeedVersion: CURRENT_TERMS_SEED_VERSION,
     terms: withIds(SEED_BATCH_FNS.flatMap((fn) => fn())),
     rmcSeedVersion: CURRENT_RMC_SEED_VERSION,
-    rmc: mergeRmcSeedItems([
+    rmc: mergeCategorySeedItems([
       { id: uid(), name: "基本設定", items: [] },
       { id: uid(), name: "フィルタ設定", items: [] },
       { id: uid(), name: "記録条件", items: [] },
       { id: uid(), name: "カテーテル表示設定", items: [] },
       { id: uid(), name: "ペーシング設定", items: [] },
       { id: uid(), name: "トラブルシューティング", items: [] },
-    ]),
-    notes: [
+    ], RMC_SEED_BATCH_FNS),
+    notesSeedVersion: CURRENT_NOTES_SEED_VERSION,
+    notes: mergeCategorySeedItems([
       { id: uid(), name: "手技の流れ", items: [] },
       { id: uid(), name: "合併症・対応", items: [] },
       { id: uid(), name: "Tips・注意点", items: [] },
       { id: uid(), name: "ふりかえり", items: [] },
-    ],
+    ], NOTES_SEED_BATCH_FNS),
     scratch: [],
   };
 }
@@ -466,8 +480,13 @@ function loadState() {
     }
     const rmcSeedVersion = parsed.rmcSeedVersion || 0;
     if (rmcSeedVersion < CURRENT_RMC_SEED_VERSION) {
-      parsed.rmc = mergeRmcSeedItems(parsed.rmc);
+      parsed.rmc = mergeCategorySeedItems(parsed.rmc, RMC_SEED_BATCH_FNS);
       parsed.rmcSeedVersion = CURRENT_RMC_SEED_VERSION;
+    }
+    const notesSeedVersion = parsed.notesSeedVersion || 0;
+    if (notesSeedVersion < CURRENT_NOTES_SEED_VERSION) {
+      parsed.notes = mergeCategorySeedItems(parsed.notes, NOTES_SEED_BATCH_FNS);
+      parsed.notesSeedVersion = CURRENT_NOTES_SEED_VERSION;
     }
     return parsed;
   } catch (e) {
