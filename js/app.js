@@ -372,18 +372,62 @@ function mergeSeedTerms(existingTerms) {
   return merged;
 }
 
+// RMCメモの初期収録項目(トラブルシューティングのコツなど)。用語辞書と同じ考え方で、
+// バッチを追加してCURRENT_RMC_SEED_VERSIONを上げると、既存データにも次回起動時に
+// 自動で追記される(同じカテゴリ名・同じタイトルの項目が既にあれば追加しない)。
+function rmcSeedItemsV1() {
+  return [
+    {
+      category: "トラブルシューティング",
+      title: "His電位が見にくい時の対応①計測手技の工夫",
+      content: "・AとHisで基準点の考え方を分ける: Aは比較的鋭く安定しているのでキャリパーの片端をそこに固定し、His側は「見える中で一番再現性のある立ち上がり点」を許容範囲として割り切る、という運用も現実的です。\n・His電位が本当に不明瞭な拍は計測から除外: 無理に不明瞭な拍で判定せず、比較的明瞭に見えるHis電位が出た心拍で評価する方が誤差は小さくなります。\n・記録をフリーズして拡大観察: リアルタイムで判断しづらい場合、その場で止めて時間軸・振幅を最大にして見直す。",
+    },
+    {
+      category: "トラブルシューティング",
+      title: "His電位が見にくい時の対応②カテーテル位置・接触の対策",
+      content: "・わずかな位置調整でHis電位の振幅が劇的に変わることが多い: 安定しない場合、数mm単位で前後・回転させてベストスポットを探し直す価値があります。\n・呼吸性の動きに合わせて基準を選ぶ: 吸気/呼気で位置がズレる場合、毎回同じ呼吸相(例: 呼気時)で計測すると再現性が上がることがあります。",
+    },
+    {
+      category: "トラブルシューティング",
+      title: "His電位が見にくい時の対応③表示・フィルタ面の対策",
+      content: "・フィルタ帯域を調整: His記録用に高域を上げる(例: 100-500Hz程度)ことでシャープな成分が際立つことがあります。逆に低域フィルタが強すぎるとHis電位が減衰して見えにくくなるので、通常の心内電位設定(30-500Hz)と使い分ける。\n・ゲインを上げて拡大: His電位は振幅が小さいことが多いので、その電極だけゲインを上げて表示する。\n・バイポーラの極性・電極間隔を調整可能なら試す: 同じカテーテルでも隣接電極の組み合わせを変えるとHis電位がより明瞭に出ることがあります。",
+    },
+  ];
+}
+
+const RMC_SEED_BATCH_FNS = [rmcSeedItemsV1];
+const CURRENT_RMC_SEED_VERSION = 1;
+
+// 既存カテゴリに一致する名前があれば項目を追記し(同名タイトルは重複させない)、
+// なければ新しい大項目として追加する。
+function mergeRmcSeedItems(categories) {
+  RMC_SEED_BATCH_FNS.flatMap((fn) => fn()).forEach((seedItem) => {
+    let cat = categories.find((c) => c.name === seedItem.category);
+    if (!cat) {
+      cat = { id: uid(), name: seedItem.category, items: [] };
+      categories.push(cat);
+    }
+    const exists = cat.items.some((it) => (it.title || "").trim().toLowerCase() === seedItem.title.trim().toLowerCase());
+    if (!exists) {
+      cat.items.push({ id: uid(), title: seedItem.title, content: seedItem.content, updatedAt: nowStr() });
+    }
+  });
+  return categories;
+}
+
 function defaultState() {
   return {
     termsSeedVersion: CURRENT_TERMS_SEED_VERSION,
     terms: withIds(SEED_BATCH_FNS.flatMap((fn) => fn())),
-    rmc: [
+    rmcSeedVersion: CURRENT_RMC_SEED_VERSION,
+    rmc: mergeRmcSeedItems([
       { id: uid(), name: "基本設定", items: [] },
       { id: uid(), name: "フィルタ設定", items: [] },
       { id: uid(), name: "記録条件", items: [] },
       { id: uid(), name: "カテーテル表示設定", items: [] },
       { id: uid(), name: "ペーシング設定", items: [] },
       { id: uid(), name: "トラブルシューティング", items: [] },
-    ],
+    ]),
     notes: [
       { id: uid(), name: "手技の流れ", items: [] },
       { id: uid(), name: "合併症・対応", items: [] },
@@ -404,6 +448,11 @@ function loadState() {
     if (seedVersion < CURRENT_TERMS_SEED_VERSION) {
       parsed.terms = mergeSeedTerms(parsed.terms);
       parsed.termsSeedVersion = CURRENT_TERMS_SEED_VERSION;
+    }
+    const rmcSeedVersion = parsed.rmcSeedVersion || 0;
+    if (rmcSeedVersion < CURRENT_RMC_SEED_VERSION) {
+      parsed.rmc = mergeRmcSeedItems(parsed.rmc);
+      parsed.rmcSeedVersion = CURRENT_RMC_SEED_VERSION;
     }
     return parsed;
   } catch (e) {
