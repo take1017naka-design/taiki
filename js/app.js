@@ -395,8 +395,23 @@ function rmcSeedItemsV1() {
   ];
 }
 
-const RMC_SEED_BATCH_FNS = [rmcSeedItemsV1];
-const CURRENT_RMC_SEED_VERSION = 1;
+function rmcSeedItemsV2() {
+  return [
+    {
+      category: "基本設定",
+      title: "波形の立ち上がり点の定義①代表的な定義の仕方",
+      content: "1. 基線からの逸脱点(deviation from baseline): 波形が基線(ノイズレベル)から明確に外れ始めた最初の点。最も直感的だが、ノイズが多いと「動き始め」の判定がぶれやすい。\n2. dV/dt最大点から逆算する方法: 立ち上がりが緩やかで「動き始め」がはっきりしない場合、最も急峻に変化している点(steepest slope)を先に見つけ、そこから接線を引いて基線との交点を求める方法。ノイズの影響を受けにくく、再現性が高いとされる。",
+    },
+    {
+      category: "基本設定",
+      title: "波形の立ち上がり点の定義②実務上の使い分け",
+      content: "・ノイズが少なく波形がシャープなら、素直に「基線から動き始めた点」でOK。\n・ノイズが多い・立ち上がりがなだらかな波形では、視覚的な「動き始め」の判定はどうしてもブレるので、ピークやsteepest slope(急峻な傾きの点)を基準にした方が再現性は高くなる。\n・つまり定義としては合っていても、「動き始め」の視認性が低い波形ではその定義に固執せず、再現性の高い代替基準に切り替える判断が実務では重要。",
+    },
+  ];
+}
+
+const RMC_SEED_BATCH_FNS = [rmcSeedItemsV1, rmcSeedItemsV2];
+const CURRENT_RMC_SEED_VERSION = 2;
 
 // 既存カテゴリに一致する名前があれば項目を追記し(同名タイトルは重複させない)、
 // なければ新しい大項目として追加する。
